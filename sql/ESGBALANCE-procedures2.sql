@@ -7,11 +7,11 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SIGNAL;
+        RESIGNAL;
     END;
     START TRANSACTION;
         INSERT INTO Indicatore (Nome, Immagine, Rilevanza, Amministratore)
-        VALUES (Nome, Immagine, Rilevanza, Amministratore)
+        VALUES (Nome, Immagine, Rilevanza, Amministratore);
     COMMIT;
 END $$
 
@@ -23,7 +23,7 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SIGNAL;
+        RESIGNAL;
     END;
     START TRANSACTION;
         INSERT INTO Indicatore (Nome, Immagine, Rilevanza, Amministratore)
@@ -41,12 +41,12 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SIGNAL;
+        RESIGNAL;
     END;
     START TRANSACTION;
         INSERT INTO Indicatore (Nome, Immagine, Rilevanza, Amministratore)
         VALUES (Nome, Immagine, Rilevanza, Amministratore);
         INSERT INTO Sociale (Indicatore, Frequenza, AmbitoSociale)
-        VALUES (Nome, Freq, amb);
+        VALUES (Nome, Freq, ambito);
     COMMIT;
 END $$
