@@ -97,8 +97,27 @@ CREATE PROCEDURE RegistraAzienda(
     IN p_ResponsabileCF VARCHAR(20)
 )
 BEGIN
-    INSERT INTO Azienda (RagioneSociale, Nome, Settore, NBilanci, NDipendenti, Logo, PartitaIva, Responsabile)
-    VALUES (p_RagioneSociale, p_Nome, p_Settore, 0, p_NDipendenti, p_Logo, p_PIva, p_ResponsabileCF);
+    DECLARE is_resp INT DEFAULT 0;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    SELECT COUNT(*) INTO is_resp
+    FROM Responsabile
+    WHERE Utente = p_ResponsabileCF;
+
+    IF is_resp = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERRORE: Responsabile non trovato.';
+    END IF;
+
+    START TRANSACTION;
+        INSERT INTO Azienda (RagioneSociale, Nome, Settore, NBilanci, NDipendenti, Logo, PartitaIva, Responsabile)
+        VALUES (p_RagioneSociale, p_Nome, p_Settore, 0, p_NDipendenti, p_Logo, p_PIva, p_ResponsabileCF);
+    COMMIT;
 END $$
 
 CREATE PROCEDURE Autenticazione(
