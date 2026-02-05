@@ -35,10 +35,16 @@ switch ($request) {
         require __DIR__ . '/../src/Views/home.php';
         break;
 
-    // Add more routes here
-    // case '/login':
-    //    require __DIR__ . '/../src/Views/login_form.php';
-    //    break;
+
+    case '/login':
+    case '/login.php':
+        $auth = new \App\Controllers\AuthController();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $auth->login();
+        } else {
+            $auth->showLogin();
+        }
+        break;
 
     default:
         http_response_code(404);

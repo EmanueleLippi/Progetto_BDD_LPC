@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Config;
+namespace App\Config; // cos'è questa riga --> namespace --> serve a organizzare il codice in cartelle
 
 use PDO;
 use PDOException;
