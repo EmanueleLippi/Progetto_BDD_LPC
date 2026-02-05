@@ -4,7 +4,7 @@ namespace App\Config;
 use MongoDB\Client;
 use MongoDB\BSON\UTCDateTime;
 
-class MongoLoader
+class MongoDB
 {
     private $collection;
 
