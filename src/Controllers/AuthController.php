@@ -14,6 +14,7 @@ class AuthController
             $this->mongo = new MongoLoader();
         } catch (\Exception $e) {
             // Handle connection error if needed, or rely on MongoLoader's die()
+            die("Errore nella connessione al database");
         }
     }
 
