@@ -11,6 +11,7 @@ class Database
     private $pdo;
 
     private $host = '127.0.0.1';
+    private $port = '8889'; // Default MAMP port
     private $db = 'ESGBalance'; // Placeholder name, update if different
     private $user = 'root';
     private $pass = 'root'; // Default XAMPP/MAMP password is often empty or 'root'
@@ -18,7 +19,7 @@ class Database
 
     private function __construct()
     {
-        $dsn = "mysql:host=$this->host;dbname=$this->db;charset=$this->charset";
+        $dsn = "mysql:host=$this->host;port=$this->port;dbname=$this->db;charset=$this->charset";
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

@@ -18,7 +18,7 @@
             <nav>
                 <ul>
                     <li><a href="/">Home</a></li>
-                    <li><a href="/login">Accedi</a></li>
+                    <li><a href="login.php">Accedi</a></li>
                 </ul>
             </nav>
         </div>
