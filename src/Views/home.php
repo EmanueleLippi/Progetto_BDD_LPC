@@ -5,7 +5,7 @@
     <p>La piattaforma per la gestione sostenibile del bilancio aziendale.</p>
 
     <div class="actions">
-        <a href="/login" class="btn btn-primary">Accedi al Portale</a>
+        <a href="index.php/login" class="btn btn-primary">Accedi al Portale</a>
     </div>
 </div>
 

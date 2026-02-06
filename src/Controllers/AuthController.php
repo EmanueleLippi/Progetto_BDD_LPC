@@ -4,9 +4,12 @@ namespace App\Controllers;
 use APP\Config\Database;
 use App\Config\MongoDB;
 use PDOException;
+use PDO;
 
 class AuthController
 {
+    private $mongo;
+
     public function __construct()
     {
         // Initialize MongoDB logging
@@ -90,7 +93,7 @@ class AuthController
         }
         //distruggo la sessione
         session_destroy();
-        header("Location: /");
+        header("Location: /login");
         exit;
     }
 }
