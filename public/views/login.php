@@ -38,6 +38,7 @@ require_once __DIR__ . '/header.php';
         </div>
         <div class="card-footer text-center bg-white border-0 mt-2">
             <small class="text-muted">Progetto BDD - LPC 2025/2026</small>
+            <small class="text-muted">Non hai un account? <a href="/views/register.php">Registrati</a></small>
         </div>
     </div>
 </div>

@@ -23,11 +23,14 @@ $result = $stmt->fetch();
 
 if ($result) {
     session_start();
-    $_SESSION['user'] = $result['U.Username'];
-    $_SESSION['role'] = $result['ruolo'];
+    $_SESSION['user'] = $result['Username'] ?? null;
+    $_SESSION['role'] = $result['Ruolo'] ?? null;
     header("Location: /index.php");
+    exit;
 } else {
     header("Location: /views/login.php?error=Credenziali non valide");
+    exit;
 }
+//TODO gestire l'errore in caso di credenziali non valide
 
 ?>
