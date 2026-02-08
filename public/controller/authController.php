@@ -3,6 +3,7 @@
 namespace App\controller;
 
 use App\configurationDB\Database;
+use App\configurationDB\MongoDB;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -11,6 +12,7 @@ $password = $_POST['password'];
 
 // Utilizzo il pattern Singleton per ottenere l'istanza del database
 $database = Database::getInstance();
+$mongoDB = new MongoDB();
 $conn = $database->getConnection();
 
 // Chiamo la procedura Autenticazione
@@ -20,14 +22,16 @@ $stmt->bindValue(":password", $password);
 $stmt->execute();
 
 $result = $stmt->fetch();
-
+$mongoDB->logEvent('login', $cf, $result['Ruolo'], 'Tentativo di login');
 if ($result) {
     session_start();
     $_SESSION['user'] = $result['Username'] ?? null;
     $_SESSION['role'] = $result['Ruolo'] ?? null;
+    $mongoDB->logEvent('login', $cf, $result['Ruolo'], 'Login effettuato');
     header("Location: /index.php");
     exit;
 } else {
+    $mongoDB->logEvent('login', $cf, 'N/A', 'Tentativo di login fallito');
     header("Location: /views/login.php?error=Credenziali non valide");
     exit;
 }

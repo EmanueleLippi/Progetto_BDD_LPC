@@ -3,6 +3,7 @@
 namespace App\controller;
 
 use App\configurationDB\Database;
+use App\configurationDB\MongoDB;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -15,6 +16,7 @@ $email = $_POST['email'];
 $username = $_POST['username'];
 
 $database = Database::getInstance();
+$mongoDB = new MongoDB();
 $conn = $database->getConnection();
 
 // TODO gestire l'upload del file cv_path
@@ -55,9 +57,11 @@ switch ($ruolo) {
     default:
         break;
 }
+$mongoDB->logEvent('register', $cf, $ruolo, 'Registrazione effettuata');
 
-//TODO gestire l'errore in caso di registrazione di un utente già esistente
+//TODO gestire l'errore in caso di registrazione di un utente già esistente --> registrare anche l'errore su MongoDB
 session_start();
 $_SESSION['user'] = $username;
 $_SESSION['role'] = $ruolo;
+
 header("Location: /index.php");
