@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../layout/header.php';
+require_once __DIR__ . '/header.php';
 ?>
 
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
@@ -16,7 +16,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </div>
             <?php endif; ?>
 
-            <form action="/login" method="POST">
+            <form action="/controller/authController.php" method="POST">
                 <div class="mb-3">
                     <label for="cf" class="form-label fw-bold">Codice Fiscale</label>
                     <input type="text" class="form-control" id="cf" name="cf" placeholder="Inserisci il tuo CF" required
@@ -37,12 +37,12 @@ require_once __DIR__ . '/../layout/header.php';
             </form>
         </div>
         <div class="card-footer text-center bg-white border-0 mt-2">
-            <small class="text-muted">Progetto BDD & LPC 2025</small>
+            <small class="text-muted">Progetto BDD - LPC 2025/2026</small>
         </div>
     </div>
 </div>
 
 <?php
 // Includiamo il footer
-require_once __DIR__ . '/../layout/footer.php';
+require_once __DIR__ . '/footer.php';
 ?>

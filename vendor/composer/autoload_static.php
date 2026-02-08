@@ -6,42 +6,50 @@ namespace Composer\Autoload;
 
 class ComposerStaticInitc970f1a266f43a2118de462ce989b839
 {
-    public static $files = array (
+    public static $files = array(
         '606a39d89246991a373564698c2d8383' => __DIR__ . '/..' . '/symfony/polyfill-php85/bootstrap.php',
         '3a37ebac017bc098e9a86b35401e7a68' => __DIR__ . '/..' . '/mongodb/mongodb/src/functions.php',
     );
 
-    public static $prefixLengthsPsr4 = array (
+    public static $prefixLengthsPsr4 = array(
+        'A' =>
+            array(
+                'App\\' => 4,
+            ),
         'S' =>
-        array (
-            'Symfony\\Polyfill\\Php85\\' => 23,
-        ),
+            array(
+                'Symfony\\Polyfill\\Php85\\' => 23,
+            ),
         'P' =>
-        array (
-            'Psr\\Log\\' => 8,
-        ),
+            array(
+                'Psr\\Log\\' => 8,
+            ),
         'M' =>
-        array (
-            'MongoDB\\' => 8,
-        ),
+            array(
+                'MongoDB\\' => 8,
+            ),
     );
 
-    public static $prefixDirsPsr4 = array (
+    public static $prefixDirsPsr4 = array(
+        'App\\' =>
+            array(
+                0 => __DIR__ . '/..' . '/../public',
+            ),
         'Symfony\\Polyfill\\Php85\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/polyfill-php85',
-        ),
+            array(
+                0 => __DIR__ . '/..' . '/symfony/polyfill-php85',
+            ),
         'Psr\\Log\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/psr/log/src',
-        ),
+            array(
+                0 => __DIR__ . '/..' . '/psr/log/src',
+            ),
         'MongoDB\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/mongodb/mongodb/src',
-        ),
+            array(
+                0 => __DIR__ . '/..' . '/mongodb/mongodb/src',
+            ),
     );
 
-    public static $classMap = array (
+    public static $classMap = array(
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'NoDiscard' => __DIR__ . '/..' . '/symfony/polyfill-php85/Resources/stubs/NoDiscard.php',
     );
