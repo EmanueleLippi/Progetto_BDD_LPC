@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/header.php';
+$error = $_GET['error'] ?? null;
 ?>
 
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
