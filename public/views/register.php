@@ -55,6 +55,51 @@ require_once __DIR__ . '/header.php';
                 </div>
                 <!-- TODO inserire comportamento dinamico che mostra e nasconde campi a seconda della selezione del ruolo da assumere -->
 
+                <!-- CV per responsabili -->
+                <div class="mb-3" id="cv_path_div">
+                    <label for="cv_path" class="form-label fw-bold">CV Path</label>
+                    <input type="file" class="form-control" id="cv_path" name="cv_path" required>
+                </div>
+
+                <div class="mb-3" id="competenze_div">
+                    <label for="competenze" class="form-label fw-bold">Competenze</label>
+                    <select class="form-select" id="competenze" name="competenze" required>
+                        <option value="">Seleziona una competenza</option>
+                        <?php
+                        use App\configurationDB\Database;
+                        require_once __DIR__ . '/../../vendor/autoload.php';
+                        $database = Database::getInstance();
+                        $conn = $database->getConnection();
+                        try {
+                            $stmt = $conn->prepare("SELECT * FROM Competenza");
+                            $stmt->execute();
+                        } catch (\PDOException $th) {
+                            echo "[ERRORE] Query sql di selezione competenze fallita" . $th->getMessage() . "\n";
+                            header("Location: /views/register.php?error=Errore di registrazione");
+                            exit;
+                        }
+                        $competenze = $stmt->fetchAll();
+                        foreach ($competenze as $competenza) {
+                            echo "<option value='" . $competenza['Nome'] . "'>" . $competenza['Nome'] . "</option>";
+                        }
+                        ?>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                        Aggiungi
+                    </button><br>
+                    <!--TODO: div che si popola con le competenze selezionate e che permette di rimuoverle-->
+                    <div id="competenze_selezionate">
+                        <label>Competenze selezionate:</label>
+                        <div id="competenze_selezionate_div">
+                            <!-- TODO: inserire qui le competenze selezionate -->
+                        </div>
+                    </div>
+                    <label>Aggiungi competenza:</label>
+                    <input type="text" class="form-control" id="nuova_competenza" name="nuova_competenza">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                        Aggiungi
+                    </button>
+                </div>
                 <div class="d-grid gap-2 mt-4">
                     <button type="submit" class="btn btn-primary btn-lg shadow-sm">
                         Registrati

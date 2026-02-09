@@ -4,6 +4,7 @@ namespace App\controller;
 
 use App\configurationDB\Database;
 use App\configurationDB\MongoDB;
+use PDOException;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -16,10 +17,17 @@ $mongoDB = new MongoDB();
 $conn = $database->getConnection();
 
 // Chiamo la procedura Autenticazione
-$stmt = $conn->prepare("CALL Autenticazione(:cf, :password)");
-$stmt->bindValue(":cf", $cf);
-$stmt->bindValue(":password", $password);
-$stmt->execute();
+try {
+    $stmt = $conn->prepare("CALL Autenticazione(:cf, :password)");
+    $stmt->bindValue(":cf", $cf);
+    $stmt->bindValue(":password", $password);
+    $stmt->execute();
+} catch (\PDOException $th) {
+    echo ("[ERRORE] Query sql di autenticazione fallita" . $th->getMessage() . "\n");
+    $mongoDB->logEvent('login', $cf, 'N/A', 'Tentativo di login fallito');
+    header("Location: /views/login.php?error=Credenziali non valide");
+    exit;
+}
 
 $result = $stmt->fetch();
 $mongoDB->logEvent('login', $cf, $result['Ruolo'], 'Tentativo di login');
@@ -35,6 +43,4 @@ if ($result) {
     header("Location: /views/login.php?error=Credenziali non valide");
     exit;
 }
-//TODO gestire l'errore in caso di credenziali non valide
-
 ?>
