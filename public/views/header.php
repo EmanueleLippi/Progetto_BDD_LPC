@@ -31,10 +31,6 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
                         <li class="nav-item">
                             <a class="nav-link btn btn-danger text-white btn-sm" href="/views/logout.php">Esci</a>
                         </li>
-                    <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-primary text-white btn-sm px-3" href="/views/login.php">Accedi</a>
-                        </li>
                     <?php endif; ?>
 
                 </ul>
