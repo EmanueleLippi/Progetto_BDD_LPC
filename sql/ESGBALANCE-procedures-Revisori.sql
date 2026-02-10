@@ -16,7 +16,7 @@ BEGIN
 
     -- Controllo: L'utente è un Revisore?
     SELECT COUNT(*) INTO is_revisore 
-    FROM REVISORE 
+    FROM Revisore 
     WHERE Utente = p_RevisoreRichiedente;
 
     IF is_revisore = 0 THEN
@@ -47,7 +47,7 @@ DECLARE EXIT HANDLER FOR SQLEXCEPTION
 
 -- Controllo: Il revisore esiste? (Auto-verifica dell'identità)
 SELECT COUNT(*) INTO is_revisore
-FROM REVISORE
+FROM Revisore
 WHERE
     Utente = p_Revisore;
 

@@ -17,13 +17,13 @@ BEGIN
     END;
 
     START TRANSACTION;
-        INSERT INTO UTENTE (Cf, Username, PW, DataNascita, LuogoNascita)
+        INSERT INTO Utente (Cf, Username, PW, DataNascita, LuogoNascita)
         VALUES (p_CF, p_UserName, p_Password, p_DataNascita, p_LuogoNascita);
         
-        INSERT INTO EMAIL (Utente, Indirizzo)
+        INSERT INTO Email (Utente, Indirizzo)
         VALUES (p_CF, p_Email);
         
-        INSERT INTO ADMINISTRATOR (Utente)
+        INSERT INTO Administrator (Utente)
         VALUES (p_CF);
     COMMIT;
 END $$
@@ -46,13 +46,13 @@ BEGIN
     END;
 
     START TRANSACTION;
-        INSERT INTO UTENTE (Cf, Username, PW, DataNascita, LuogoNascita)
+        INSERT INTO Utente (Cf, Username, PW, DataNascita, LuogoNascita)
         VALUES (p_CF, p_UserName, p_Password, p_DataNascita, p_LuogoNascita);
         
-        INSERT INTO EMAIL (Utente, Indirizzo)
+        INSERT INTO Email (Utente, Indirizzo)
         VALUES (p_CF, p_Email);
         
-        INSERT INTO REVISORE (Utente, NRevisioni, IndiceAffidabilita)
+        INSERT INTO Revisore (Utente, NRevisioni, IndiceAffidabilita)
         VALUES (p_CF, 0, p_IndAff);
     COMMIT;
 END $$
@@ -75,10 +75,10 @@ BEGIN
     END;
 
     START TRANSACTION;
-        INSERT INTO UTENTE (Cf, Username, PW, DataNascita, LuogoNascita)
+        INSERT INTO Utente (Cf, Username, PW, DataNascita, LuogoNascita)
         VALUES (p_CF, p_UserName, p_Password, p_DataNascita, p_LuogoNascita);
         
-        INSERT INTO EMAIL (Utente, Indirizzo)
+        INSERT INTO Email (Utente, Indirizzo)
         VALUES (p_CF, p_Email);
         
         INSERT INTO Responsabile (Utente, Cv_Path)
@@ -132,9 +132,9 @@ BEGIN
             WHEN Resp.Utente IS NOT NULL THEN 'Responsabile'
             ELSE 'Utente Semplice'
         END as Ruolo
-    FROM UTENTE U
-    LEFT JOIN ADMINISTRATOR A ON U.Cf = A.Utente
-    LEFT JOIN REVISORE R ON U.Cf = R.Utente
+    FROM Utente U
+    LEFT JOIN Administrator A ON U.Cf = A.Utente
+    LEFT JOIN Revisore R ON U.Cf = R.Utente
     LEFT JOIN Responsabile Resp ON U.Cf = Resp.Utente
     WHERE U.Cf = p_cf AND U.PW = p_PW;
 END $$

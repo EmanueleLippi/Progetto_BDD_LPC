@@ -25,11 +25,16 @@ try {
 } catch (\PDOException $th) {
     echo ("[ERRORE] Query sql di autenticazione fallita" . $th->getMessage() . "\n");
     $mongoDB->logEvent('login', $cf, 'N/A', 'Tentativo di login fallito');
-    header("Location: /views/login.php?error=Credenziali non valide");
+    header("Location: /views/login.php?error=Errore di autenticazione");
     exit;
 }
 
 $result = $stmt->fetch();
+if ($result === false) {
+    $mongoDB->logEvent('login', $cf, 'N/A', 'Tentativo di login fallito');
+    header("Location: /views/login.php?error=Credenziali non valide");
+    exit;
+}
 $mongoDB->logEvent('login', $cf, $result['Ruolo'], 'Tentativo di login');
 if ($result) {
     session_start();

@@ -18,7 +18,7 @@ BEGIN
 
     -- CONTROLLO SICUREZZA: Verifica che l'utente sia un Amministratore
     SELECT COUNT(*) INTO is_admin 
-    FROM ADMINISTRATOR 
+    FROM Administrator 
     WHERE Utente = Amministratore;
 
     IF is_admin = 0 THEN
@@ -51,7 +51,7 @@ BEGIN
 
     -- CONTROLLO SICUREZZA
     SELECT COUNT(*) INTO is_admin 
-    FROM ADMINISTRATOR 
+    FROM Administrator 
     WHERE Utente = Amministratore;
 
     IF is_admin = 0 THEN
@@ -88,7 +88,7 @@ BEGIN
 
     -- CONTROLLO SICUREZZA
     SELECT COUNT(*) INTO is_admin 
-    FROM ADMINISTRATOR 
+    FROM Administrator 
     WHERE Utente = Amministratore;
 
     IF is_admin = 0 THEN

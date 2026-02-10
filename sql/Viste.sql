@@ -6,7 +6,7 @@ FROM Azienda;
 -- Vista 2: per mostrare il numero di revisori ESG registrati in piattaforma
 CREATE OR REPLACE VIEW NumeroRevisoriESG AS
 SELECT COUNT(*) AS NumeroRevisoriESG
-FROM REVISORE;
+FROM Revisore;
 
 -- Vista 3: per mostrare l'azienda con il valore più alto di affidabilità
 CREATE OR REPLACE VIEW AziendaAffidabilitaMaggiore AS
@@ -14,25 +14,27 @@ SELECT
     A.RagioneSociale,
     A.Nome AS NomeAzienda,
     A.Settore,
-    SUM(
-        CASE
-            WHEN R.Esito = 'Approvazione' THEN 1
-            ELSE 0
-        END
-    ) AS NumApprovazioni,
+    SUM(CASE WHEN B.ApprovatoSenzaRilievi = 1 THEN 1 ELSE 0 END) AS NumApprovazioni,
     COUNT(*) AS NumTotali,
     (
-        SUM(
-            CASE
-                WHEN R.Esito = 'Approvazione' THEN 1
-                ELSE 0
-            END
-        ) * 100.0 / COUNT(*)
+        SUM(CASE WHEN B.ApprovatoSenzaRilievi = 1 THEN 1 ELSE 0 END) * 100.0
+        / NULLIF(COUNT(*), 0)
     ) AS Percentuale_Affidabilita
 FROM Azienda A
-    JOIN Revisione R ON A.RagioneSociale = R.BilancioAz
-WHERE
-    R.Esito IS NOT NULL
+    JOIN (
+        SELECT
+            R.BilancioAz,
+            R.DataBil,
+            CASE
+                WHEN COUNT(*) > 0
+                    AND SUM(CASE WHEN R.Esito = 'Approvazione' THEN 1 ELSE 0 END) = COUNT(*)
+                THEN 1
+                ELSE 0
+            END AS ApprovatoSenzaRilievi
+        FROM Revisione R
+        WHERE R.Esito IS NOT NULL
+        GROUP BY R.BilancioAz, R.DataBil
+    ) AS B ON A.RagioneSociale = B.BilancioAz
 GROUP BY
     A.RagioneSociale,
     A.Nome,
@@ -43,17 +45,24 @@ HAVING
         SELECT MAX(Percentuale)
         FROM (
                 SELECT (
-                        SUM(
-                            CASE
-                                WHEN R2.Esito = 'Approvazione' THEN 1
-                                ELSE 0
-                            END
-                        ) * 100.0 / COUNT(*)
+                        SUM(CASE WHEN B2.ApprovatoSenzaRilievi = 1 THEN 1 ELSE 0 END) * 100.0
+                        / NULLIF(COUNT(*), 0)
                     ) AS Percentuale
                 FROM Azienda A2
-                    JOIN Revisione R2 ON A2.RagioneSociale = R2.BilancioAz
-                WHERE
-                    R2.Esito IS NOT NULL
+                    JOIN (
+                        SELECT
+                            R2.BilancioAz,
+                            R2.DataBil,
+                            CASE
+                                WHEN COUNT(*) > 0
+                                    AND SUM(CASE WHEN R2.Esito = 'Approvazione' THEN 1 ELSE 0 END) = COUNT(*)
+                                THEN 1
+                                ELSE 0
+                            END AS ApprovatoSenzaRilievi
+                        FROM Revisione R2
+                        WHERE R2.Esito IS NOT NULL
+                        GROUP BY R2.BilancioAz, R2.DataBil
+                    ) AS B2 ON A2.RagioneSociale = B2.BilancioAz
                 GROUP BY
                     A2.RagioneSociale
             ) AS TabellaMassimi

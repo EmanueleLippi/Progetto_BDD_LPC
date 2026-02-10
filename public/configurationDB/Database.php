@@ -12,7 +12,7 @@ class Database
 
     private $host = '127.0.0.1';
     private $port = '8889';
-    private $db = 'ESGBalance';
+    private $db = 'ESGBALANCE';
     private $user = 'root';
     private $pass = 'root';
     private $charset = 'utf8mb4';

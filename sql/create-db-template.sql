@@ -4,7 +4,7 @@ CREATE DATABASE if not exists ESGBALANCE DEFAULT CHARACTER SET = 'utf8mb4';
 
 USE ESGBALANCE;
 
-CREATE TABLE if NOT Exists UTENTE (
+CREATE TABLE if NOT Exists Utente (
     Cf varchar(20) PRIMARY KEY,
     Username VARCHAR(20) UNIQUE NOT NULL,
     PW VARCHAR(20) NOT NULL,
@@ -12,19 +12,19 @@ CREATE TABLE if NOT Exists UTENTE (
     LuogoNascita VARCHAR(20)
 ) engine = InnoDB;
 
-CREATE TABLE if NOT Exists EMAIL (
+CREATE TABLE if NOT Exists Email (
     Utente varchar(20),
     Indirizzo VARCHAR(30),
     PRIMARY KEY (Utente, Indirizzo),
     Foreign Key (Utente) REFERENCES Utente (CF) on delete CASCADE
 ) engine = InnoDB;
 
-CREATE TABLE if NOT Exists ADMINISTRATOR (
+CREATE TABLE if NOT Exists Administrator (
     Utente VARCHAR(20) PRIMARY KEY,
     Foreign Key (Utente) REFERENCES Utente (CF) on delete CASCADE
 ) engine = InnoDB;
 
-CREATE TABLE if NOT Exists REVISORE (
+CREATE TABLE if NOT Exists Revisore (
     Utente VARCHAR(20) PRIMARY KEY,
     NRevisioni INT DEFAULT 0,
     IndiceAffidabilita FLOAT DEFAULT 0,
