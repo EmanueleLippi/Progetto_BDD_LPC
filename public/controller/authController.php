@@ -40,6 +40,7 @@ if ($result) {
     session_start();
     $_SESSION['user'] = $result['Username'] ?? null;
     $_SESSION['role'] = $result['Ruolo'] ?? null;
+    $_SESSION['cf'] = $result['Cf'] ?? null;
     $mongoDB->logEvent('login', $cf, $result['Ruolo'], 'Login effettuato');
     header("Location: /index.php");
     exit;

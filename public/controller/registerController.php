@@ -20,7 +20,7 @@ $mongoDB = new MongoDB();
 $conn = $database->getConnection();
 
 $cv_path = null;
-if ($ruolo === 'responsabile') {
+if ($ruolo === 'Responsabile') {
     if (!isset($_FILES['cv_path']) || $_FILES['cv_path']['error'] !== UPLOAD_ERR_OK) {
         $mongoDB->logEvent('register', $cf, 'responsabile', 'Upload CV mancante o non valido');
         header("Location: /views/register.php?error=CV non valido");
@@ -62,7 +62,7 @@ if ($ruolo === 'responsabile') {
 }
 
 switch ($ruolo) {
-    case 'admin':
+    case 'Admin':
         try {
             $stmt = $conn->prepare("CALL RegistraAdmin(:cf, :username, :password, :email, :dataNascita, :luogoNascita)");
             $stmt->bindValue(":cf", $cf);
@@ -79,7 +79,7 @@ switch ($ruolo) {
             exit;
         }
         break;
-    case 'responsabile':
+    case 'Responsabile':
         try {
             $stmt = $conn->prepare('CALL RegistraResponsabile(:cf, :username, :password, :email, :dataNascita, :luogoNascita, :cv_path)');
             $stmt->bindValue(":cf", $cf);
@@ -97,7 +97,7 @@ switch ($ruolo) {
             exit;
         }
         break;
-    case 'revisore':
+    case 'Revisore':
         try {
             $indiceAffidabilita = 0;
             $stmt = $conn->prepare('CALL RegistraRevisore(:cf, :username, :password, :email, :dataNascita, :luogoNascita, :indiceAffidabilita)');
@@ -169,5 +169,6 @@ $mongoDB->logEvent('register', $cf, $ruolo, 'Registrazione effettuata');
 session_start();
 $_SESSION['user'] = $username;
 $_SESSION['role'] = $ruolo;
+$_SESSION['cf'] = $cf;
 
 header("Location: /index.php");

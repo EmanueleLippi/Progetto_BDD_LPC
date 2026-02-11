@@ -33,9 +33,9 @@ $error = $_GET['error'] ?? null;
                 <div class="mb-3">
                     <label for="ruolo" class="form-label fw-bold">Ruolo</label>
                     <select class="form-select" id="ruolo" name="ruolo" placeholder="Seleziona un ruolo" required>
-                        <option value="admin">Admin</option>
-                        <option value="responsabile">Responsabile</option>
-                        <option value="revisore">Revisore</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Responsabile">Responsabile</option>
+                        <option value="Revisore">Revisore</option>
                     </select>
                 </div>
                 <div class="mb-3">
@@ -149,7 +149,7 @@ $error = $_GET['error'] ?? null;
         const selected = new Map();
 
         function toggleCv() {
-            const isResponsabile = ruoloSelect.value === 'responsabile';
+            const isResponsabile = ruoloSelect.value === 'Responsabile';
             cvDiv.style.display = isResponsabile ? 'block' : 'none';
             cvInput.required = isResponsabile;
             cvInput.disabled = !isResponsabile;
@@ -159,7 +159,7 @@ $error = $_GET['error'] ?? null;
         }
 
         function toggleCompetenze() {
-            const isRevisore = ruoloSelect.value === 'revisore';
+            const isRevisore = ruoloSelect.value === 'Revisore';
             competenzeDiv.style.display = isRevisore ? 'block' : 'none';
             competenzeSelect.disabled = !isRevisore;
             if (!isRevisore) {
@@ -249,7 +249,7 @@ $error = $_GET['error'] ?? null;
             existing.forEach((node) => node.remove());
             const existingLevels = form.querySelectorAll('input[name="competenze_livelli[]"]');
             existingLevels.forEach((node) => node.remove());
-            if (ruoloSelect.value === 'revisore' && selected.size === 0) {
+            if (ruoloSelect.value === 'Revisore' && selected.size === 0) {
                 showCompetenzeAlert('Sei revisore: seleziona almeno una competenza.');
                 event.preventDefault();
                 return;

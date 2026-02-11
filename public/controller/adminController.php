@@ -1,5 +1,4 @@
 <?php
-
 namespace App\controller;
 
 use App\configurationDB\Database;
@@ -9,22 +8,21 @@ use PDOException;
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 session_start();
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+$mongoDB = new MongoDB();
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     header("Location: /views/login.php?error=Non hai il permesso di accedere a questa pagina");
-    $mongoDB->logEvent('Tentativo di accesso non autorizzato', $_SESSION['user'], $_SESSION['role'], 'Tentativo di accesso non autorizzato alla pagina admin');
+    $mongoDB->logEvent('Tentativo di accesso non autorizzato', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Tentativo di accesso non autorizzato alla pagina admin');
     exit;
 }
-
-$azione = $_POST['azione'] ?? '';
 $db = Database::getInstance();
-$mongoDB = new MongoDB();
+$azione = $_POST['azione'] ?? '';
 $conn = $db->getConnection();
 switch ($azione) {
     case "inserisci_esg":
         $nome = $_POST['nome'];
         $img = $_POST['img'];
         $rilevanza = $_POST['rilevanza'];
-        $amministratore = $_SESSION['user'];
+        $amministratore = $_SESSION['cf'];
         try {
             $stmt = $conn->prepare("CALL InserisciIndicatore(:nome, :img, :rilevanza, :amministratore)");
             $stmt->bindValue(":nome", $nome);
@@ -46,7 +44,7 @@ switch ($azione) {
         $nome = $_POST["nome"];
         $img = $_POST["img"];
         $rilevanza = $_POST["rilevanza"];
-        $admin = $_SESSION["user"];
+        $admin = $_SESSION["cf"];
         $amb = $_POST["amb"];
         try {
             $stmt = $conn->prepare("CALL InserisciIndicatoreAmbientale(:nome, :img, :rilevanza, :admin, :amb)");
@@ -70,7 +68,7 @@ switch ($azione) {
         $nome = $_POST["nome"];
         $img = $_POST["img"];
         $rilevanza = $_POST["rilevanza"];
-        $admin = $_SESSION["user"];
+        $admin = $_SESSION["cf"];
         $frequenza = $_POST["frequenza"];
         $ambito = $_POST["ambito"];
         try {
@@ -95,7 +93,7 @@ switch ($azione) {
     case "inserisci_voce":
         $nome = $_POST["nome"];
         $descr = $_POST["descrizione"];
-        $admin = $_SESSION["user"];
+        $admin = $_SESSION["cf"];
         try {
             $stmt = $conn->prepare("CALL InserisciVoce(:nome, :descrizione, :admin)");
             $stmt->bindValue(":nome", $nome);
@@ -116,7 +114,7 @@ switch ($azione) {
         $revisore = $_POST["revisore"];
         $dataBilancio = $_POST["dataBilancio"];
         $bilancioAz = $_POST["bilancioAz"];
-        $admin = $_SESSION["user"];
+        $admin = $_SESSION["cf"];
         try {
             $stmt = $conn->prepare("CALL AssegnaRevisore(:revisore, :dataBilancio, :bilancioAz, :admin)");
             $stmt->bindValue(":revisore", $revisore);

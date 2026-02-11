@@ -1,6 +1,7 @@
+<!--TODO: Verificare perchè non fa il display della Dashboard-->
 <?php
 use App\configurationDB\Database;
-require_once __DIR__ . '/../header.php';
+//require_once __DIR__ . '/../header.php';
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
 // Controllo sessione
@@ -216,4 +217,4 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
     }
 </script>
 
-<?php require_once __DIR__ . '/../footer.php'; ?>
+<?php //require_once __DIR__ . '/../footer.php'; ?>
