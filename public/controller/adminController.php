@@ -1,31 +1,51 @@
 <?php
 namespace App\controller;
 
+//import delle classi necessarie
 use App\configurationDB\Database;
 use App\configurationDB\MongoDB;
 use PDOException;
 
+//require per il caricamento automatico delle classi
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+//avvio la sessione
 session_start();
+
+//Avvio la connessione a Mongo
 $mongoDB = new MongoDB();
+//controllo se l'utente ha il ruolo di per accedere a questi metodi
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
+    //se non ha il ruolo di admin lo mando alla pagina di login
+    //TODO: Valutare la creazione di una pagina di errore oppure di un redirect a index.php
     header("Location: /views/login.php?error=Non hai il permesso di accedere a questa pagina");
+    //log del tentativo di accesso non autorizzato
     $mongoDB->logEvent('Tentativo di accesso non autorizzato', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Tentativo di accesso non autorizzato alla pagina admin');
     exit;
 }
+//Se ha le credenziali giuste procedo con la connessione a MySQL
+//Ottengo l'istanza del database
 $db = Database::getInstance();
+//Scarico l'azione richiesta o la setto a '' se non c'è
 $azione = $_POST['azione'] ?? '';
+//Connetto il db
 $conn = $db->getConnection();
 
+/**
+ * Funzione per il caricamento dell'immagine dell'indicatore ESG
+ * @param MongoDB $mongoDB --> istanza del database MongoDB
+ * @return string --> percorso dell'immagine caricata
+ */
 function uploadIndicatoreImmagine(MongoDB $mongoDB): string
 {
+    //Controllo che dal form sia stato inviato un file consono e privo di errori
     if (!isset($_FILES['img_file']) || $_FILES['img_file']['error'] !== UPLOAD_ERR_OK) {
         $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Upload immagine mancante o non valido');
         header("Location: /index.php?error=" . urlencode("Immagine indicatore non valida"));
         exit;
     }
 
+    //Controllo che la dimensione del file non superi i 5MB
     $maxSizeBytes = 5 * 1024 * 1024; // 5 MB
     if ($_FILES['img_file']['size'] > $maxSizeBytes) {
         $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Immagine troppo grande');
@@ -33,48 +53,60 @@ function uploadIndicatoreImmagine(MongoDB $mongoDB): string
         exit;
     }
 
+    //prelevo il nome del file caricato e la sua estensione
     $originalName = $_FILES['img_file']['name'] ?? '';
     $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    //Controllo se l'estensione del file è tra quelle accettate
     if (!in_array($extension, $allowedExtensions, true)) {
         $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Formato immagine non valido');
         header("Location: /index.php?error=" . urlencode("Formato immagine non valido"));
         exit;
     }
 
+    //imposto la cartella in cui verrà salvata l'immagine
     $uploadDir = __DIR__ . '/../uploads/esg';
+    //Controllo se la cartella esiste, altrimenti la creo
     if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
         $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Errore creazione cartella upload');
         header("Location: /index.php?error=" . urlencode("Errore salvataggio immagine"));
         exit;
     }
 
+    //creo un nome sicuro per il file: sostituisco il nome del file con il cf dell'utente e aggiungo timestamp e numero casuale oltre che l'estensione
     $safeCf = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_SESSION['cf'] ?? 'utente'));
     $fileName = $safeCf . '_' . time() . '_' . mt_rand(1000, 9999) . '.' . $extension;
+    //imposto la destinazione del file
     $destination = $uploadDir . '/' . $fileName;
 
+    //Controllo se il file è stato caricato correttamente
     if (!move_uploaded_file($_FILES['img_file']['tmp_name'], $destination)) {
         $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Errore salvataggio file immagine');
         header("Location: /index.php?error=" . urlencode("Errore salvataggio immagine"));
         exit;
     }
 
-    return '/uploads/esg/' . $fileName;
+    return '/uploads/esg/' . $fileName; //ritorno il path dell'immagine
 }
 
+//switch per le azioni richieste
 switch ($azione) {
     case "inserisci_esg":
         $nome = $_POST['nome'];
-        $img = uploadIndicatoreImmagine($mongoDB);
+        $img = uploadIndicatoreImmagine($mongoDB); //carico l'immagine dell'indicatore
         $rilevanza = $_POST['rilevanza'];
         $amministratore = $_SESSION['cf'];
         try {
+            //preparo la query
             $stmt = $conn->prepare("CALL InserisciIndicatore(:nome, :img, :rilevanza, :amministratore)");
+            //faccio il bind dei parametri della query
             $stmt->bindValue(":nome", $nome);
             $stmt->bindValue(":img", $img);
             $stmt->bindValue(":rilevanza", $rilevanza);
             $stmt->bindValue(":amministratore", $amministratore);
+            //eseguo la query
             $stmt->execute();
+            //Aggiorno mongo
             $mongoDB->logEvent('inserisci_esg', $_SESSION['user'], $_SESSION['role'], 'Indicatore inserito');
             header("Location: /index.php?success=" . urlencode("Indicatore inserito con successo"));
             exit;

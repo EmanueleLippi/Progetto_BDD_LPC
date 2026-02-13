@@ -20,12 +20,19 @@ $azione = $_POST['azione'] ?? ($_GET['action'] ?? '');
 $db = Database::getInstance();
 $conn = $db->getConnection();
 
+/**
+ * Funzione per l'upload del logo dell'azienda
+ * @param MongoDB $mongoDB
+ * @return string|null
+ */
 function uploadLogoAzienda(MongoDB $mongoDB): ?string
 {
+    //controllo se il file sia stato passato dal form
     if (!isset($_FILES['logo_file']) || $_FILES['logo_file']['error'] === UPLOAD_ERR_NO_FILE) {
         return null;
     }
 
+    //controllo se c'è stato un errore durante l'upload
     if ($_FILES['logo_file']['error'] !== UPLOAD_ERR_OK) {
         $mongoDB->logEvent('upload_logo_azienda', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Upload logo non valido');
         header("Location: /index.php?error=" . urlencode("Logo azienda non valido"));
@@ -33,39 +40,48 @@ function uploadLogoAzienda(MongoDB $mongoDB): ?string
     }
 
     $maxSizeBytes = 5 * 1024 * 1024; // 5 MB
+    //controllo se il file supera la dimensione massima
     if ($_FILES['logo_file']['size'] > $maxSizeBytes) {
         $mongoDB->logEvent('upload_logo_azienda', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Logo troppo grande');
         header("Location: /index.php?error=" . urlencode("Logo troppo grande (max 5MB)"));
         exit;
     }
 
+    //estraggo nome, estensione e definisco i le estensioni che accetto
     $originalName = $_FILES['logo_file']['name'] ?? '';
     $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    //controllo se l'estensione del file è tra quelle accette
     if (!in_array($extension, $allowedExtensions, true)) {
         $mongoDB->logEvent('upload_logo_azienda', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Formato logo non valido');
         header("Location: /index.php?error=" . urlencode("Formato logo non valido"));
         exit;
     }
 
+    //creo la cartella per i file se non esiste
     $uploadDir = __DIR__ . '/../uploads/aziende';
+    //controllo se la cartella esiste e la creo se non esiste
     if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
         $mongoDB->logEvent('upload_logo_azienda', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Errore creazione cartella logo');
         header("Location: /index.php?error=" . urlencode("Errore salvataggio logo"));
         exit;
     }
 
+    //creo il nome del file
     $safeCf = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_SESSION['cf'] ?? 'utente'));
     $fileName = $safeCf . '_' . time() . '_' . mt_rand(1000, 9999) . '.' . $extension;
-    $destination = $uploadDir . '/' . $fileName;
+    $destination = $uploadDir . '/' . $fileName; //definisco la destinazione del file
 
+
+
+    //salvo il file e controllo che non ci siano stati errori
     if (!move_uploaded_file($_FILES['logo_file']['tmp_name'], $destination)) {
         $mongoDB->logEvent('upload_logo_azienda', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Errore salvataggio file logo');
         header("Location: /index.php?error=" . urlencode("Errore salvataggio logo"));
         exit;
     }
 
-    return '/uploads/aziende/' . $fileName;
+    return '/uploads/aziende/' . $fileName; //ritorno il path del file da salvare sul database
 }
 
 switch ($azione) {
@@ -79,11 +95,6 @@ switch ($azione) {
         $logo = $logoUploaded ?? trim((string) ($_POST['logo'] ?? ''));
         $piva = trim((string) ($_POST['piva'] ?? ''));
         $responsabile = $_SESSION['cf'];
-
-        if ($ragione_sociale === '' || $piva === '') {
-            header("Location: /index.php?error=" . urlencode("Ragione sociale e Partita IVA sono obbligatorie"));
-            exit;
-        }
         try {
             $stmt = $conn->prepare("CALL RegistraAzienda(:ragione_sociale, :nome, :settore, :n_dipendenti, :logo, :piva, :responsabile)");
             $stmt->bindValue(":ragione_sociale", $ragione_sociale);
@@ -111,10 +122,6 @@ switch ($azione) {
         $Azienda = trim((string) ($_POST["azienda"] ?? $_POST["azienda_piva"] ?? ''));
         $data = trim((string) ($_POST["data"] ?? $_POST["data_creazione"] ?? ''));
         $responsabile = $_SESSION["cf"];
-        if ($Azienda === '' || $data === '') {
-            header("Location: /index.php?error=" . urlencode("Azienda e data bilancio sono obbligatorie"));
-            exit;
-        }
         try {
             $stmt = $conn->prepare("CALL creaBilancio(:Azienda, :data, :responsabile)");
             $stmt->bindValue(":Azienda", $Azienda);

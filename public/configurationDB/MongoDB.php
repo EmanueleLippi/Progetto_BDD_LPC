@@ -1,16 +1,17 @@
 <?php
 namespace App\configurationDB;
-
+//importazione delle classi necessarie
 use MongoDB\Client;
 use MongoDB\BSON\UTCDateTime;
 
+//classe per gestire la connesione al Databse MongoDB
 class MongoDB
 {
-    private $collection;
+    private $collection; //oggetto di connessione MongoDB
 
     public function __construct()
     {
-
+        //inizializzo la connessione al database
         try {
             //connetto al server local
             $client = new Client("mongodb://127.0.0.1:27017");
@@ -21,8 +22,18 @@ class MongoDB
         }
     }
 
+    /**
+     * 
+     * Metodo per la funzione di registrazione log sul db mongo
+     * @param $tipoEvento
+     * @param $cfUtente
+     * @param $ruolo
+     * @param $dettagli
+     * @return void
+     */
     public function logEvent($tipoEvento, $cfUtente, $ruolo, $dettagli = [])
     {
+        //prepara la formattazione del documento da inserire --> documento = log azione
         $documento = [
             'timestamp' => new UTCDateTime(),
             'tipo_evento' => $tipoEvento,
@@ -33,6 +44,7 @@ class MongoDB
             'dettagli' => $dettagli,
             'descrizione' => "L'utente $cfUtente ha eseguito l'azione: $tipoEvento"
         ];
+        //inserisce il documento nella collezione
         $this->collection->insertOne($documento);
 
 

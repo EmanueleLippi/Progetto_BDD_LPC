@@ -1,21 +1,22 @@
 <?php
 
 namespace App\configurationDB;
-
+//importazione delle classi necessarie
 use PDO;
 use PDOException;
 
+//classe per gestire la connesione al Databse SQL
 class Database
 {
-    private static $instance = null;
-    private $pdo;
+    private static $instance = null; //istanza unica della classe --> evito piu istanze
+    private $pdo; //oggetto di connessione PDO
 
-    private $host = '127.0.0.1';
-    private $port = '8889';
-    private $db = 'ESGBALANCE';
-    private $user = 'root';
-    private $pass = 'root';
-    private $charset = 'utf8mb4';
+    private $host = '127.0.0.1'; //indirizzo del server
+    private $port = '8889'; //porta del server
+    private $db = 'ESGBALANCE'; //nome del database
+    private $user = 'root'; //username per db
+    private $pass = 'root'; //password per db
+    private $charset = 'utf8mb4'; //caratteri accettati
 
     /**
      * Costruttore privato per impedire la creazione di nuove istanze dall'esterno.
@@ -23,8 +24,8 @@ class Database
      */
     private function __construct()
     {
-        $dsn = "mysql:host=$this->host;port=$this->port;dbname=$this->db;charset=$this->charset";
-        $options = [
+        $dsn = "mysql:host=$this->host;port=$this->port;dbname=$this->db;charset=$this->charset"; //stringa con dati per la connessione
+        $options = [ //opzioni della connessione e gestione errori
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, // Solleva eccezioni in caso di errori
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, // Restituisce i risultati come array associativi
             PDO::ATTR_EMULATE_PREPARES => false, // Usa prepared statements reali
@@ -45,6 +46,8 @@ class Database
      */
     public static function getInstance()
     {
+        //il self::$instance è la variabile statica che contiene l'istanza unica della classe
+        //notazione :: in php indica una costante o una proprietà statica
         if (self::$instance === null) {
             self::$instance = new Database();
         }
@@ -58,6 +61,6 @@ class Database
      */
     public function getConnection()
     {
-        return $this->pdo;
+        return $this->pdo; //restituisce l'oggetto PDO per la connessione
     }
 }
