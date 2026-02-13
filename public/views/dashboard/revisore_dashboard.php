@@ -1,7 +1,6 @@
 <?php
 use App\configurationDB\Database;
-require_once __DIR__ . '/../views/header.php';
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 //controllo sessione e ruolo
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Revisore') {
@@ -15,11 +14,16 @@ $conn = $db->getConnection();
 $revisore = $_SESSION['cf'];
 
 //recupero lista di tutte le competenze a sistema per poterle assegnare
-$stmtComp = $conn->query("SELECT DISTINCT Nome FROM Competenze");
+$stmtComp = $conn->query("SELECT DISTINCT Nome FROM Competenza");
 $competenze_esistenti = $stmtComp->fetchAll(PDO::FETCH_ASSOC);
 
 //recupero bilanci assegnati al revisore loggato
-$stmtBilanci = $conn->prepare("SELECT DataCreazione, Azienda FROM Bilanci WHERE Revisore = :revisore");
+$stmtBilanci = $conn->prepare("
+    SELECT R.DataBil AS Data, R.BilancioAz AS Azienda
+    FROM Revisione R
+    WHERE R.Revisore = :revisore
+    ORDER BY R.DataBil DESC, R.BilancioAz ASC
+");
 $stmtBilanci->execute([':revisore' => $revisore]);
 $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -124,15 +128,17 @@ $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
 
                         <div class="mb-3">
                             <label class="form-label">Esito</label>
-                            <select name="esito" class="form-select" required>
-                                <option value="Approvato">Approvato</option>
-                                <option value="Respinto">Respinto</option>
+                            <select name="esito" id="esitoGiudizio" class="form-select" onchange="toggleRilievi()"
+                                required>
+                                <option value="Approvazione">Approvazione</option>
+                                <option value="Approvazione con rilievi">Approvazione con rilievi</option>
+                                <option value="Respingimento">Respingimento</option>
                             </select>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3 d-none" id="divRilievi">
                             <label class="form-label">Rilievi / Note Finali</label>
-                            <textarea name="rilievi" class="form-control" rows="2"></textarea>
+                            <textarea name="rilievi" id="rilieviField" class="form-control" rows="2"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Conferma Giudizio</button>
                     </form>
@@ -215,6 +221,23 @@ $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
             compFinale.value = document.getElementById('inputCompNuova').value;
         }
     }
-</script>
 
-<?php require_once __DIR__ . '/../views/footer.php'; ?>
+    function toggleRilievi() {
+        const esito = document.getElementById('esitoGiudizio').value;
+        const divRilievi = document.getElementById('divRilievi');
+        const rilieviField = document.getElementById('rilieviField');
+
+        if (esito === 'Approvazione con rilievi') {
+            divRilievi.classList.remove('d-none');
+            rilieviField.required = true;
+        } else {
+            divRilievi.classList.add('d-none');
+            rilieviField.required = false;
+            rilieviField.value = '';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleRilievi();
+    });
+</script>
