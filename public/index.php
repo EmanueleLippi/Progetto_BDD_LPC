@@ -6,13 +6,13 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 if (isset($_SESSION["role"])) {
     switch ($_SESSION["role"]) {
-        case "admin":
+        case "Admin":
             require __DIR__ . "/views/dashboard/admin_dashboard.php";
             break;
-        case "revisore ESG":
+        case "Revisore":
             require __DIR__ . "/views/dashboard/revisore_dashboard.php";
             break;
-        case "responsabile":
+        case "Responsabile":
             require __DIR__ . "/views/dashboard/responsabile_dashboard.php";
             break;
     }

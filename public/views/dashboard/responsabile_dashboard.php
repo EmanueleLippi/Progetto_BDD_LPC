@@ -1,12 +1,81 @@
 <?php
-//require_once __DIR__ . '/../header.php';
+use App\configurationDB\Database;
+
+require_once __DIR__ . '/../../../vendor/autoload.php';
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Responsabile') {
+    echo "<script>alert('Accesso negato: Ruolo attuale: " . ($_SESSION['role'] ?? 'nessuno') . "'); window.location.href='/views/login.php';</script>";
+    exit;
+}
+
+$db = Database::getInstance();
+$conn = $db->getConnection();
+$aziende = [];
+$bilanci = [];
+
+try {
+    $stmtAziende = $conn->prepare("SELECT RagioneSociale, PartitaIva FROM Azienda WHERE Responsabile = :responsabile ORDER BY RagioneSociale");
+    $stmtAziende->bindValue(':responsabile', $_SESSION['cf']);
+    $stmtAziende->execute();
+    $aziende = $stmtAziende->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "Errore caricamento aziende: " . htmlspecialchars($e->getMessage());
+}
+
+try {
+    $sqlBilanci = "
+        SELECT
+            B.Azienda,
+            B.Data,
+            B.Stato,
+            COUNT(DISTINCT RB.Voce) AS voci_compilate,
+            COUNT(DISTINCT C.Indicatore) AS tot_indicatori
+        FROM Bilancio B
+        JOIN Azienda A ON A.RagioneSociale = B.Azienda
+        LEFT JOIN RigaBilancio RB ON RB.AziendaBil = B.Azienda AND RB.DataBil = B.Data
+        LEFT JOIN Collegamento C ON C.Bilancio = B.Azienda AND C.DataBil = B.Data
+        WHERE A.Responsabile = :responsabile
+        GROUP BY B.Azienda, B.Data, B.Stato
+        ORDER BY B.Data DESC, B.Azienda ASC
+    ";
+    $stmtBilanci = $conn->prepare($sqlBilanci);
+    $stmtBilanci->bindValue(':responsabile', $_SESSION['cf']);
+    $stmtBilanci->execute();
+    $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "Errore caricamento bilanci: " . htmlspecialchars($e->getMessage());
+}
+
+function badgeClassFromStato(string $stato): string
+{
+    return match ($stato) {
+        'Bozza' => 'bg-secondary',
+        'In Revisione' => 'bg-warning text-dark',
+        'Approvato' => 'bg-success',
+        'Respinto' => 'bg-danger',
+        default => 'bg-light text-dark',
+    };
+}
 ?>
 
 <div class="container my-5">
+    <?php if (isset($_GET['success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($_GET['success']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+    <?php if (isset($_GET['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($_GET['error']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="row mb-4">
         <div class="col-12 text-center text-md-start">
             <h2 class="border-bottom pb-2">Area Responsabile Aziendale</h2>
-            <p class="text-muted">Gestisci le tue aziende, compila i bilanci e associa i dati di sostenibilità ESG.</p>
+            <p class="text-muted">Gestisci le tue aziende, compila i bilanci e associa i dati di sostenibilita ESG.</p>
         </div>
     </div>
 
@@ -17,25 +86,45 @@
                     <h5 class="mb-0">Registrazione Azienda</h5>
                 </div>
                 <div class="card-body">
-                    <form id="formAzienda" onsubmit="handleResponsabileAction(event, 'registraAzienda')">
+                    <form action="/controller/responsabileController.php" method="POST" enctype="multipart/form-data"
+                        novalidate data-action-form="registraAzienda">
+                        <input type="hidden" name="azione" value="registraAzienda">
+                        <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
                         <div class="row g-2 mb-3">
-                            <div class="col-md-8">
+                            <div class="col-md-6">
                                 <label class="form-label small fw-bold">Ragione Sociale (Univoca)</label>
                                 <input type="text" name="ragione_sociale" class="form-control" required>
+                                <div class="invalid-feedback">Inserisci la ragione sociale.</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Nome Azienda</label>
+                                <input type="text" name="nome" class="form-control" placeholder="es. ESG S.p.A." required>
+                                <div class="invalid-feedback">Inserisci il nome azienda.</div>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label small fw-bold">Settore</label>
-                                <input type="text" name="settore" class="form-control" placeholder="es. Tech">
+                                <input type="text" name="settore" class="form-control" placeholder="es. Tech" required>
+                                <div class="invalid-feedback">Inserisci il settore.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Logo Azienda</label>
+                                <input type="file" name="logo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif" required>
+                                <div class="form-text">Formati supportati: JPG, JPEG, PNG, WEBP, GIF. Max 5MB.</div>
+                                <div class="invalid-feedback">Carica il logo azienda.</div>
                             </div>
                         </div>
                         <div class="row g-2 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Partita IVA</label>
-                                <input type="text" name="piva" class="form-control" required>
+                                <input type="text" name="piva" class="form-control" required pattern="[0-9]{11}" maxlength="11">
+                                <div class="invalid-feedback">Inserisci una Partita IVA valida (11 cifre).</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Num. Dipendenti</label>
-                                <input type="number" name="n_dipendenti" class="form-control">
+                                <input type="number" name="n_dipendenti" class="form-control" min="1" required>
+                                <div class="invalid-feedback">Inserisci il numero dipendenti.</div>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-info text-white w-100">Registra Azienda</button>
@@ -50,18 +139,27 @@
                     <h5 class="mb-0">Nuovo Bilancio di Esercizio</h5>
                 </div>
                 <div class="card-body">
-                    <p class="small text-muted">All'atto della creazione, lo stato sarà impostato su "bozza".</p>
-                    <form id="formNuovoBilancio" onsubmit="handleResponsabileAction(event, 'creaBilancio')">
+                    <p class="small text-muted">All'atto della creazione, lo stato sara impostato su "Bozza".</p>
+                    <form action="/controller/responsabileController.php" method="POST" novalidate
+                        data-action-form="creaBilancio">
+                        <input type="hidden" name="azione" value="creaBilancio">
+                        <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Seleziona Azienda</label>
-                            <select name="azienda_piva" class="form-select" id="selectAziende" required>
-                                <option value="">Caricamento aziende...</option>
+                            <select name="azienda" class="form-select" required>
+                                <option value="">Seleziona azienda...</option>
+                                <?php foreach ($aziende as $azienda): ?>
+                                    <option value="<?php echo htmlspecialchars($azienda['RagioneSociale']); ?>">
+                                        <?php echo htmlspecialchars($azienda['RagioneSociale']); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
+                            <div class="invalid-feedback">Seleziona un'azienda.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Data Creazione</label>
-                            <input type="date" name="data_creazione" class="form-control"
-                                value="<?php echo date('Y-m-d'); ?>" required>
+                            <input type="date" name="data" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
+                            <div class="invalid-feedback">Seleziona una data.</div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Crea Bilancio</button>
                     </form>
@@ -73,9 +171,8 @@
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0">Monitoraggio Bilanci e Indicatori ESG</h5>
-                    <button class="btn btn-sm btn-outline-light" onclick="refreshTable()">Aggiorna Dati</button>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -90,7 +187,27 @@
                                     <th>Azioni</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabella-corpo">
+                            <tbody>
+                                <?php if (empty($bilanci)): ?>
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">Nessun bilancio disponibile.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($bilanci as $bilancio): ?>
+                                        <tr>
+                                            <td>#<?php echo htmlspecialchars($bilancio['Data'] . '-' . $bilancio['Azienda']); ?></td>
+                                            <td><?php echo htmlspecialchars($bilancio['Azienda']); ?></td>
+                                            <td>
+                                                <span class="badge <?php echo badgeClassFromStato((string) $bilancio['Stato']); ?>">
+                                                    <?php echo htmlspecialchars($bilancio['Stato']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo (int) $bilancio['voci_compilate']; ?></td>
+                                            <td><?php echo (int) $bilancio['tot_indicatori']; ?></td>
+                                            <td><span class="text-muted">Operazioni avanzate in arrivo</span></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -101,63 +218,70 @@
 </div>
 
 <script>
-    // Logica JavaScript per rendere la dashboard dinamica
-    document.addEventListener('DOMContentLoaded', () => {
-        loadAziende();
-        refreshTable();
-    });
+    (function () {
+        const requiredByAction = {
+            registraAzienda: ['ragione_sociale', 'nome', 'settore', 'logo_file', 'piva', 'n_dipendenti'],
+            creaBilancio: ['azienda', 'data']
+        };
 
-    function loadAziende() {
-        fetch('/controller/responsabileController.php?action=listAziende')
-            .then(r => r.json())
-            .then(data => {
-                const select = document.getElementById('selectAziende');
-                select.innerHTML = data.map(a => `<option value="${a.piva}">${a.nome}</option>`).join('');
-            });
-    }
+        function getActionName(form) {
+            const hidden = form.querySelector('input[name="azione"]');
+            return hidden ? hidden.value : '';
+        }
 
-    function refreshTable() {
-        fetch('/controller/responsabileController.php?action=getBilanciResponsabile')
-            .then(r => r.json())
-            .then(data => {
-                const tbody = document.getElementById('tabella-corpo');
-                tbody.innerHTML = data.map(b => `
-                <tr>
-                    <td>#${b.id}</td>
-                    <td>${b.azienda_nome}</td>
-                    <td><span class="badge ${b.stato_css}">${b.stato}</span></td>
-                    <td>${b.voci_compilate}</td>
-                    <td>${b.tot_indicatori}</td>
-                    <td>
-                        <div class="btn-group">
-                            <button onclick="apriCompilazione(${b.id})" class="btn btn-sm btn-outline-primary">Popola Voci</button>
-                            <button onclick="apriESG(${b.id})" class="btn btn-sm btn-outline-success">Associa ESG</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-            });
-    }
+        function getField(form, name) {
+            return form.querySelector(`[name="${name}"]`);
+        }
 
-    function handleResponsabileAction(event, action) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
+        function setFieldValidity(field, isValid) {
+            if (!field) return;
+            field.classList.toggle('is-invalid', !isValid);
+            field.classList.toggle('is-valid', isValid && field.value.trim() !== '');
+        }
 
-        fetch(`/controller/responsabileController.php?action=${action}`, {
-            method: 'POST',
-            body: formData
-        })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success) {
-                    alert("Operazione completata con successo!");
-                    refreshTable();
-                    event.target.reset();
-                } else {
-                    alert("Errore: " + res.message);
+        function validateForm(form) {
+            const action = getActionName(form);
+            const requiredFields = requiredByAction[action] || [];
+            let allValid = true;
+
+            requiredFields.forEach((fieldName) => {
+                const field = getField(form, fieldName);
+                if (!field) return;
+                const value = (field.value || '').trim();
+                const valid = (field.type === 'file')
+                    ? (field.files && field.files.length > 0 && field.checkValidity())
+                    : (value !== '' && field.checkValidity());
+                setFieldValidity(field, valid);
+                if (!valid) {
+                    allValid = false;
                 }
             });
-    }
-</script>
 
-<?php //require_once __DIR__ . '/../footer.php'; ?>
+            const errorBox = form.querySelector('[data-form-error]');
+            if (errorBox) {
+                if (!allValid) {
+                    errorBox.textContent = 'Compila correttamente tutti i campi obbligatori per questa azione.';
+                    errorBox.classList.remove('d-none');
+                } else {
+                    errorBox.textContent = '';
+                    errorBox.classList.add('d-none');
+                }
+            }
+
+            return allValid;
+        }
+
+        const forms = document.querySelectorAll('form[data-action-form]');
+        forms.forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                if (!validateForm(form)) {
+                    event.preventDefault();
+                    const firstInvalid = form.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                    }
+                }
+            });
+        });
+    })();
+</script>

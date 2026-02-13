@@ -17,10 +17,55 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
 $db = Database::getInstance();
 $azione = $_POST['azione'] ?? '';
 $conn = $db->getConnection();
+
+function uploadIndicatoreImmagine(MongoDB $mongoDB): string
+{
+    if (!isset($_FILES['img_file']) || $_FILES['img_file']['error'] !== UPLOAD_ERR_OK) {
+        $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Upload immagine mancante o non valido');
+        header("Location: /index.php?error=" . urlencode("Immagine indicatore non valida"));
+        exit;
+    }
+
+    $maxSizeBytes = 5 * 1024 * 1024; // 5 MB
+    if ($_FILES['img_file']['size'] > $maxSizeBytes) {
+        $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Immagine troppo grande');
+        header("Location: /index.php?error=" . urlencode("Immagine troppo grande (max 5MB)"));
+        exit;
+    }
+
+    $originalName = $_FILES['img_file']['name'] ?? '';
+    $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    if (!in_array($extension, $allowedExtensions, true)) {
+        $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Formato immagine non valido');
+        header("Location: /index.php?error=" . urlencode("Formato immagine non valido"));
+        exit;
+    }
+
+    $uploadDir = __DIR__ . '/../uploads/esg';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+        $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Errore creazione cartella upload');
+        header("Location: /index.php?error=" . urlencode("Errore salvataggio immagine"));
+        exit;
+    }
+
+    $safeCf = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_SESSION['cf'] ?? 'utente'));
+    $fileName = $safeCf . '_' . time() . '_' . mt_rand(1000, 9999) . '.' . $extension;
+    $destination = $uploadDir . '/' . $fileName;
+
+    if (!move_uploaded_file($_FILES['img_file']['tmp_name'], $destination)) {
+        $mongoDB->logEvent('upload_img_indicatore', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Errore salvataggio file immagine');
+        header("Location: /index.php?error=" . urlencode("Errore salvataggio immagine"));
+        exit;
+    }
+
+    return '/uploads/esg/' . $fileName;
+}
+
 switch ($azione) {
     case "inserisci_esg":
         $nome = $_POST['nome'];
-        $img = $_POST['img'];
+        $img = uploadIndicatoreImmagine($mongoDB);
         $rilevanza = $_POST['rilevanza'];
         $amministratore = $_SESSION['cf'];
         try {
@@ -31,18 +76,18 @@ switch ($azione) {
             $stmt->bindValue(":amministratore", $amministratore);
             $stmt->execute();
             $mongoDB->logEvent('inserisci_esg', $_SESSION['user'], $_SESSION['role'], 'Indicatore inserito');
-            header("Location: /views/admin.php?success=Indicatore inserito con successo");
+            header("Location: /index.php?success=" . urlencode("Indicatore inserito con successo"));
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di inserimento indicatore', $_SESSION['user'], $_SESSION['role'], 'Tentativo di inserimento indicatore fallito');
-            header("Location: /views/admin.php?error=Tentativo di inserimento indicatore fallito " . $th->getMessage());
+            header("Location: /index.php?error=" . urlencode("Tentativo di inserimento indicatore fallito: " . $th->getMessage()));
             exit;
         }
         break;
 
     case "inserisci_ambientale":
         $nome = $_POST["nome"];
-        $img = $_POST["img"];
+        $img = uploadIndicatoreImmagine($mongoDB);
         $rilevanza = $_POST["rilevanza"];
         $admin = $_SESSION["cf"];
         $amb = $_POST["amb"];
@@ -55,18 +100,18 @@ switch ($azione) {
             $stmt->bindValue(":amb", $amb);
             $stmt->execute();
             $mongoDB->logEvent('inserisci_ambientale', $_SESSION['user'], $_SESSION['role'], 'Ambientale inserito');
-            header("Location: /views/admin.php?success=Ambientale inserito con successo");
+            header("Location: /index.php?success=" . urlencode("Ambientale inserito con successo"));
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di inserimento ambientale', $_SESSION['user'], $_SESSION['role'], 'Tentativo di inserimento ambientale fallito');
-            header("Location: /views/admin.php?error=Tentativo di inserimento ambientale fallito " . $th->getMessage());
+            header("Location: /index.php?error=" . urlencode("Tentativo di inserimento ambientale fallito: " . $th->getMessage()));
             exit;
         }
         break;
 
     case "inserisci_sociale":
         $nome = $_POST["nome"];
-        $img = $_POST["img"];
+        $img = uploadIndicatoreImmagine($mongoDB);
         $rilevanza = $_POST["rilevanza"];
         $admin = $_SESSION["cf"];
         $frequenza = $_POST["frequenza"];
@@ -81,11 +126,11 @@ switch ($azione) {
             $stmt->bindValue(":ambito", $ambito);
             $stmt->execute();
             $mongoDB->logEvent('inserisci_sociale', $_SESSION['user'], $_SESSION['role'], 'Sociale inserito');
-            header("Location: /views/admin.php?success=Sociale inserito con successo");
+            header("Location: /index.php?success=" . urlencode("Sociale inserito con successo"));
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di inserimento sociale', $_SESSION['user'], $_SESSION['role'], 'Tentativo di inserimento sociale fallito');
-            header("Location: /views/admin.php?error=Tentativo di inserimento sociale fallito " . $th->getMessage());
+            header("Location: /index.php?error=" . urlencode("Tentativo di inserimento sociale fallito: " . $th->getMessage()));
             exit;
         }
         break;
@@ -101,11 +146,11 @@ switch ($azione) {
             $stmt->bindValue(":admin", $admin);
             $stmt->execute();
             $mongoDB->logEvent('inserisci_voce', $_SESSION['user'], $_SESSION['role'], 'Voce inserita');
-            header("Location: /views/admin.php?success=Voce inserita con successo");
+            header("Location: /index.php?success=" . urlencode("Voce inserita con successo"));
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di inserimento voce', $_SESSION['user'], $_SESSION['role'], 'Tentativo di inserimento voce fallito');
-            header("Location: /views/admin.php?error=Tentativo di inserimento voce fallito " . $th->getMessage());
+            header("Location: /index.php?error=" . urlencode("Tentativo di inserimento voce fallito: " . $th->getMessage()));
             exit;
         }
         break;
@@ -123,11 +168,11 @@ switch ($azione) {
             $stmt->bindValue(":admin", $admin);
             $stmt->execute();
             $mongoDB->logEvent('assegna_revisore', $_SESSION['user'], $_SESSION['role'], 'Revisore assegnato');
-            header("Location: /views/admin.php?success=Revisore assegnato con successo");
+            header("Location: /index.php?success=" . urlencode("Revisore assegnato con successo"));
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di assegnazione revisore', $_SESSION['user'], $_SESSION['role'], 'Tentativo di assegnazione revisore fallito');
-            header("Location: /views/admin.php?error=Tentativo di assegnazione revisore fallito " . $th->getMessage());
+            header("Location: /index.php?error=" . urlencode("Tentativo di assegnazione revisore fallito: " . $th->getMessage()));
             exit;
         }
         break;

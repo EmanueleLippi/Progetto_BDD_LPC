@@ -1,11 +1,9 @@
-<!--TODO: Verificare perchè non fa il display della Dashboard-->
 <?php
 use App\configurationDB\Database;
-//require_once __DIR__ . '/../header.php';
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
 // Controllo sessione
-if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'admin' && $_SESSION['role'])) {
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     echo "<script>alert('Accesso negato: Ruolo attuale: " . ($_SESSION['role'] ?? 'nessuno') . "'); window.location.href='/views/login.php';</script>";
     exit;
 }
@@ -15,12 +13,24 @@ $db = Database::getInstance();
 $conn = $db->getConnection();
 
 // Recupero lista Revisori
-$stmtRev = $conn->query("SELECT Username FROM Utenti WHERE Ruolo = 'revisore ESG'");
-$revisori = $stmtRev->fetchAll(PDO::FETCH_ASSOC);
+try {
+    //Modifica noi non usiamo la features Ruolo quindi per estrarre solo i revisori bisogna passare per il Join
+    $stmtRev = $conn->query("SELECT Username FROM Utente JOIN Revisore ON Utente.Cf = Revisore.Utente");
+    $revisori = $stmtRev->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "Errore: " . $e->getMessage();
+    $revisori = [];
+}
+
 
 // Recupero lista Aziende (per selezionare il bilancio)
-$stmtAz = $conn->query("SELECT RagioneSociale, PartitaIVA FROM Aziende");
-$aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmtAz = $conn->query("SELECT RagioneSociale, PartitaIVA FROM Azienda");
+    $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "Errore: " . $e->getMessage();
+    $aziende = [];
+}
 ?>
 
 <div class="container my-5">
@@ -52,13 +62,15 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
                     <h5 class="mb-0">Gestione Template Bilancio</h5>
                 </div>
                 <div class="card-body">
-                    <form action="/controller/adminController.php" method="POST">
+                    <form action="/controller/adminController.php" method="POST" novalidate data-action-form="inserisci_voce">
                         <input type="hidden" name="azione" value="inserisci_voce">
+                        <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
 
                         <div class="mb-3">
                             <label class="form-label">Nome Voce Contabile</label>
                             <input type="text" name="nome" class="form-control" placeholder="es. Ricavi vendite"
                                 required>
+                            <div class="invalid-feedback">Inserisci il nome della voce contabile.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Descrizione</label>
@@ -76,24 +88,31 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
                     <h5 class="mb-0">Nuovo Indicatore ESG</h5>
                 </div>
                 <div class="card-body">
-                    <form action="/controller/adminController.php" method="POST" id="formIndicatore">
+                    <form action="/controller/adminController.php" method="POST" id="formIndicatore"
+                        enctype="multipart/form-data" novalidate data-action-form="inserisci_esg">
 
                         <input type="hidden" name="azione" id="azioneIndicatore" value="inserisci_esg">
+                        <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
 
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <label class="form-label">Nome</label>
                                 <input type="text" name="nome" class="form-control" required>
+                                <div class="invalid-feedback">Inserisci il nome dell'indicatore.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Rilevanza (0-10)</label>
                                 <input type="number" name="rilevanza" class="form-control" min="0" max="10" required>
+                                <div class="invalid-feedback">Inserisci una rilevanza tra 0 e 10.</div>
                             </div>
                         </div>
 
                         <div class="mb-2">
-                            <label class="form-label">Nome file Immagine</label>
-                            <input type="text" name="img" class="form-control" placeholder="es. logo.png" required>
+                            <label class="form-label">Immagine Indicatore</label>
+                            <input type="file" name="img_file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif"
+                                required>
+                            <div class="form-text">Formati supportati: JPG, JPEG, PNG, WEBP, GIF. Max 5MB.</div>
+                            <div class="invalid-feedback">Carica un'immagine valida.</div>
                         </div>
 
                         <div class="mb-3">
@@ -108,16 +127,19 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
                         <div id="fieldsAmbientale" class="d-none p-2 bg-light border mb-3">
                             <label class="form-label text-success">Codice Normativa (amb)</label>
                             <input type="text" name="amb" class="form-control">
+                            <div class="invalid-feedback">Inserisci il codice normativa.</div>
                         </div>
 
                         <div id="fieldsSociale" class="d-none p-2 bg-light border mb-3">
                             <div class="mb-2">
                                 <label class="form-label text-primary">Frequenza</label>
                                 <input type="text" name="frequenza" class="form-control">
+                                <div class="invalid-feedback">Inserisci la frequenza.</div>
                             </div>
                             <div class="mb-2">
                                 <label class="form-label text-primary">Ambito</label>
                                 <input type="text" name="ambito" class="form-control">
+                                <div class="invalid-feedback">Inserisci l'ambito sociale.</div>
                             </div>
                         </div>
 
@@ -135,8 +157,9 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
                     <h5 class="mb-0">Assegna Revisore a Bilancio</h5>
                 </div>
                 <div class="card-body">
-                    <form action="/controller/adminController.php" method="POST">
+                    <form action="/controller/adminController.php" method="POST" novalidate data-action-form="assegna_revisore">
                         <input type="hidden" name="azione" value="assegna_revisore">
+                        <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
 
                         <div class="row align-items-end">
                             <div class="col-md-4 mb-3">
@@ -149,11 +172,13 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div class="invalid-feedback">Seleziona un'azienda.</div>
                             </div>
 
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">Data Bilancio</label>
                                 <input type="date" name="dataBilancio" class="form-control" required>
+                                <div class="invalid-feedback">Seleziona la data bilancio.</div>
                             </div>
 
                             <div class="col-md-3 mb-3">
@@ -166,6 +191,7 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div class="invalid-feedback">Seleziona un revisore.</div>
                             </div>
 
                             <div class="col-md-2 mb-3">
@@ -215,6 +241,86 @@ $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
             hiddenAzione.value = 'inserisci_esg';
         }
     }
-</script>
 
-<?php //require_once __DIR__ . '/../footer.php'; ?>
+    (function () {
+        const requiredByAction = {
+            inserisci_voce: ['nome'],
+            inserisci_esg: ['nome', 'rilevanza', 'img_file'],
+            inserisci_ambientale: ['nome', 'rilevanza', 'img_file', 'amb'],
+            inserisci_sociale: ['nome', 'rilevanza', 'img_file', 'frequenza', 'ambito'],
+            assegna_revisore: ['bilancioAz', 'dataBilancio', 'revisore']
+        };
+
+        function getActionName(form) {
+            const hidden = form.querySelector('input[name="azione"]');
+            return hidden ? hidden.value : '';
+        }
+
+        function getField(form, name) {
+            return form.querySelector(`[name="${name}"]`);
+        }
+
+        function isFieldValuePresent(field) {
+            if (!field) return false;
+            if (field.type === 'file') {
+                return field.files && field.files.length > 0;
+            }
+            return (field.value || '').trim() !== '';
+        }
+
+        function setFieldValidity(field, isValid) {
+            if (!field) return;
+            field.classList.toggle('is-invalid', !isValid);
+            field.classList.toggle('is-valid', isValid && isFieldValuePresent(field));
+        }
+
+        function validateForm(form) {
+            const action = getActionName(form);
+            const requiredFields = requiredByAction[action] || [];
+            let allValid = true;
+
+            requiredFields.forEach((fieldName) => {
+                const field = getField(form, fieldName);
+                if (!field) return;
+                const valid = isFieldValuePresent(field) && field.checkValidity();
+                setFieldValidity(field, valid);
+                if (!valid) allValid = false;
+            });
+
+            const errorBox = form.querySelector('[data-form-error]');
+            if (errorBox) {
+                if (!allValid) {
+                    errorBox.textContent = 'Compila correttamente tutti i campi obbligatori per questa azione.';
+                    errorBox.classList.remove('d-none');
+                } else {
+                    errorBox.textContent = '';
+                    errorBox.classList.add('d-none');
+                }
+            }
+
+            return allValid;
+        }
+
+        const forms = document.querySelectorAll('form[data-action-form]');
+        forms.forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                if (!validateForm(form)) {
+                    event.preventDefault();
+                    const firstInvalid = form.querySelector('.is-invalid');
+                    if (firstInvalid) firstInvalid.focus();
+                }
+            });
+        });
+
+        const tipoSelect = document.getElementById('tipoSelect');
+        if (tipoSelect) {
+            tipoSelect.addEventListener('change', () => {
+                gestisciFormIndicatore();
+                const formIndicatore = document.getElementById('formIndicatore');
+                if (formIndicatore) validateForm(formIndicatore);
+            });
+        }
+
+        gestisciFormIndicatore();
+    })();
+</script>
