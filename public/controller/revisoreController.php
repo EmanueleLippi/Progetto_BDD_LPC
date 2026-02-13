@@ -37,11 +37,11 @@ switch ($azione) {
             $stmt->bindValue(":testonota", $testonota);
             $stmt->execute();
             $mongoDB->logEvent('inserisciNote', $_SESSION['user'], $_SESSION['role'], 'Nota inserita');
-            header("Location: /views/revisore.php?success=Nota inserita con successo");
+            header("Location: /index.php?success=Nota inserita con successo");
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di inserimento nota', $_SESSION['user'], $_SESSION['role'], 'Tentativo di inserimento nota fallito');
-            header("Location: /views/revisore.php?error=Tentativo di inserimento nota fallito " . $th->getMessage());
+            header("Location: /index.php?error=Tentativo di inserimento nota fallito " . $th->getMessage());
             exit;
         }
         break;
@@ -60,11 +60,11 @@ switch ($azione) {
             $stmt->bindValue(":rilievi", $rilievi);
             $stmt->execute();
             $mongoDB->logEvent('inserisciGiudizio', $_SESSION['user'], $_SESSION['role'], 'Giudizio inserito');
-            header("Location: /views/revisore.php?success=Giudizio inserito con successo");
+            header("Location: /index.php?success=Giudizio inserito con successo");
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di inserimento giudizio', $_SESSION['user'], $_SESSION['role'], 'Tentativo di inserimento giudizio fallito');
-            header("Location: /views/revisore.php?error=Tentativo di inserimento giudizio fallito " . $th->getMessage());
+            header("Location: /index.php?error=Tentativo di inserimento giudizio fallito " . $th->getMessage());
             exit;
         }
         break;
@@ -82,7 +82,7 @@ switch ($azione) {
             $stmt->closeCursor();
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di inserimento competenza', $_SESSION['user'], $_SESSION['role'], 'Tentativo di inserimento competenza fallito');
-            header("Location: /views/revisore.php?error=Tentativo di inserimento competenza fallito " . $th->getMessage());
+            header("Location: /index.php?error=Tentativo di inserimento competenza fallito " . $th->getMessage());
             exit;
         }
         try {
@@ -92,11 +92,11 @@ switch ($azione) {
             $stmt->bindValue(":livello", $livello);
             $stmt->execute();
             $mongoDB->logEvent('AssegnaCompetenza', $_SESSION['user'], $_SESSION['role'], 'Competenza assegnata');
-            header("Location: /views/revisore.php?success=Competenza assegnata con successo");
+            header("Location: /index.php?success=Competenza assegnata con successo");
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di assegnazione competenza', $_SESSION['user'], $_SESSION['role'], 'Tentativo di assegnazione competenza fallito');
-            header("Location: /views/revisore.php?error=Tentativo di assegnazione competenza fallito " . $th->getMessage());
+            header("Location: /index.php?error=Tentativo di assegnazione competenza fallito " . $th->getMessage());
             exit;
         }
         break;
@@ -112,11 +112,11 @@ switch ($azione) {
             $stmt->bindValue(":livello", $livello);
             $stmt->execute();
             $mongoDB->logEvent('AssegnaCompetenza', $_SESSION['user'], $_SESSION['role'], 'Competenza assegnata');
-            header("Location: /views/revisore.php?success=Competenza assegnata con successo");
+            header("Location: /index.php?success=Competenza assegnata con successo");
             exit;
         } catch (PDOException $th) {
             $mongoDB->logEvent('Tentativo di assegnazione competenza', $_SESSION['user'], $_SESSION['role'], 'Tentativo di assegnazione competenza fallito');
-            header("Location: /views/revisore.php?error=Tentativo di assegnazione competenza fallito " . $th->getMessage());
+            header("Location: /index.php?error=Tentativo di assegnazione competenza fallito " . $th->getMessage());
             exit;
         }
         break;

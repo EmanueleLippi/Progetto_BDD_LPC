@@ -2,19 +2,18 @@
 use App\configurationDB\Database;
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
-// Controllo sessione
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     echo "<script>alert('Accesso negato: Ruolo attuale: " . ($_SESSION['role'] ?? 'nessuno') . "'); window.location.href='/views/login.php';</script>";
     exit;
 }
 
-// 1. RECUPERO DATI PER LE SELECT (Revisori e Aziende/Bilanci)
+//recupero i dati
 $db = Database::getInstance();
 $conn = $db->getConnection();
 
-// Recupero lista Revisori
+//recupero lista Revisori
 try {
-    //Modifica noi non usiamo la features Ruolo quindi per estrarre solo i revisori bisogna passare per il Join
+    //estraggo solo i revisori attraverso il Join
     $stmtRev = $conn->query("SELECT Username FROM Utente JOIN Revisore ON Utente.Cf = Revisore.Utente");
     $revisori = $stmtRev->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -23,7 +22,7 @@ try {
 }
 
 
-// Recupero lista Aziende (per selezionare il bilancio)
+//recupero lista Aziende 
 try {
     $stmtAz = $conn->query("SELECT RagioneSociale, PartitaIVA FROM Azienda");
     $aziende = $stmtAz->fetchAll(PDO::FETCH_ASSOC);
@@ -62,7 +61,8 @@ try {
                     <h5 class="mb-0">Gestione Template Bilancio</h5>
                 </div>
                 <div class="card-body">
-                    <form action="/controller/adminController.php" method="POST" novalidate data-action-form="inserisci_voce">
+                    <form action="/controller/adminController.php" method="POST" novalidate
+                        data-action-form="inserisci_voce">
                         <input type="hidden" name="azione" value="inserisci_voce">
                         <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
 
@@ -157,7 +157,8 @@ try {
                     <h5 class="mb-0">Assegna Revisore a Bilancio</h5>
                 </div>
                 <div class="card-body">
-                    <form action="/controller/adminController.php" method="POST" novalidate data-action-form="assegna_revisore">
+                    <form action="/controller/adminController.php" method="POST" novalidate
+                        data-action-form="assegna_revisore">
                         <input type="hidden" name="azione" value="assegna_revisore">
                         <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
 
@@ -206,7 +207,7 @@ try {
 </div>
 
 <script>
-    // Funzione per gestire la visualizzazione dei campi in base al tipo di indicatore
+    //funzione per gestire la visualizzazione dei campi in base al tipo di indicatore
     function gestisciFormIndicatore() {
         const tipo = document.getElementById('tipoSelect').value;
         const hiddenAzione = document.getElementById('azioneIndicatore');
@@ -217,11 +218,11 @@ try {
         const inputFreq = document.querySelector('input[name="frequenza"]');
         const inputAmbito = document.querySelector('input[name="ambito"]');
 
-        // Reset visualizzazione
+        //reset visualizzazione
         divAmb.classList.add('d-none');
         divSoc.classList.add('d-none');
 
-        // Rimuovi 'required' dai campi nascosti per evitare errori di validazione HTML5
+        //rimuovo 'required' dai campi nascosti per evitare errori di validazione
         if (inputAmb) inputAmb.required = false;
         if (inputFreq) inputFreq.required = false;
         if (inputAmbito) inputAmbito.required = false;

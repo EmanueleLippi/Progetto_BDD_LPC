@@ -12,6 +12,8 @@ $db = Database::getInstance();
 $conn = $db->getConnection();
 $aziende = [];
 $bilanci = [];
+$voci = [];
+$indicatori = [];
 
 try {
     $stmtAziende = $conn->prepare("SELECT RagioneSociale, PartitaIva FROM Azienda WHERE Responsabile = :responsabile ORDER BY RagioneSociale");
@@ -44,6 +46,20 @@ try {
     $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     echo "Errore caricamento bilanci: " . htmlspecialchars($e->getMessage());
+}
+
+try {
+    $stmtVoci = $conn->query("SELECT Nome FROM Voce ORDER BY Nome");
+    $voci = $stmtVoci->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "Errore caricamento voci: " . htmlspecialchars($e->getMessage());
+}
+
+try {
+    $stmtIndicatori = $conn->query("SELECT Nome FROM Indicatore ORDER BY Nome");
+    $indicatori = $stmtIndicatori->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "Errore caricamento indicatori: " . htmlspecialchars($e->getMessage());
 }
 
 function badgeClassFromStato(string $stato): string
@@ -98,7 +114,8 @@ function badgeClassFromStato(string $stato): string
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Nome Azienda</label>
-                                <input type="text" name="nome" class="form-control" placeholder="es. ESG S.p.A." required>
+                                <input type="text" name="nome" class="form-control" placeholder="es. ESG S.p.A."
+                                    required>
                                 <div class="invalid-feedback">Inserisci il nome azienda.</div>
                             </div>
                         </div>
@@ -110,7 +127,8 @@ function badgeClassFromStato(string $stato): string
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Logo Azienda</label>
-                                <input type="file" name="logo_file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif" required>
+                                <input type="file" name="logo_file" class="form-control"
+                                    accept=".jpg,.jpeg,.png,.webp,.gif" required>
                                 <div class="form-text">Formati supportati: JPG, JPEG, PNG, WEBP, GIF. Max 5MB.</div>
                                 <div class="invalid-feedback">Carica il logo azienda.</div>
                             </div>
@@ -118,7 +136,8 @@ function badgeClassFromStato(string $stato): string
                         <div class="row g-2 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Partita IVA</label>
-                                <input type="text" name="piva" class="form-control" required pattern="[0-9]{11}" maxlength="11">
+                                <input type="text" name="piva" class="form-control" required pattern="[0-9]{11}"
+                                    maxlength="11">
                                 <div class="invalid-feedback">Inserisci una Partita IVA valida (11 cifre).</div>
                             </div>
                             <div class="col-md-6">
@@ -158,10 +177,144 @@ function badgeClassFromStato(string $stato): string
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Data Creazione</label>
-                            <input type="date" name="data" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
+                            <input type="date" name="data" class="form-control" value="<?php echo date('Y-m-d'); ?>"
+                                required>
                             <div class="invalid-feedback">Seleziona una data.</div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Crea Bilancio</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NUOVA RIGA PER COMPILAZIONE ESTESA -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Compila Voci di Bilancio</h5>
+                </div>
+                <div class="card-body">
+                    <form action="/controller/responsabileController.php" method="POST" novalidate
+                        data-action-form="popolaBilancio">
+                        <input type="hidden" name="azione" value="popolaBilancio">
+                        <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Seleziona Bilancio</label>
+                            <select name="azienda" class="form-select" required>
+                                <option value="">Seleziona...</option>
+                                <?php foreach ($bilanci as $b): ?>
+                                    <option value="<?php echo htmlspecialchars($b['Azienda']); ?>"
+                                        data-date="<?php echo htmlspecialchars($b['Data']); ?>">
+                                        <?php echo htmlspecialchars($b['Azienda'] . ' (' . $b['Data'] . ')'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="invalid-feedback">Seleziona un bilancio.</div>
+                            <!-- Campo nascosto per la data che serve al controller -->
+                            <input type="hidden" name="data" value="">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Voce Contabile</label>
+                            <select name="voce" class="form-select" required>
+                                <option value="">Seleziona Voce...</option>
+                                <?php foreach ($voci as $v): ?>
+                                    <option value="<?php echo htmlspecialchars($v['Nome']); ?>">
+                                        <?php echo htmlspecialchars($v['Nome']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="invalid-feedback">Seleziona una voce.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Importo (€)</label>
+                            <input type="number" name="importo" class="form-control" step="0.01" required>
+                            <div class="invalid-feedback">Inserisci un importo valido.</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-warning w-100">Salva Voce</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Integrazione ESG</h5>
+                </div>
+                <div class="card-body">
+                    <form action="/controller/responsabileController.php" method="POST" novalidate
+                        data-action-form="creaCollegamentoESG">
+                        <input type="hidden" name="azione" value="creaCollegamentoESG">
+                        <div class="alert alert-danger d-none py-2 small mb-3" role="alert" data-form-error></div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Bilancio</label>
+                                <select name="azienda" class="form-select" required>
+                                    <option value="">Seleziona...</option>
+                                    <?php foreach ($bilanci as $b): ?>
+                                        <option value="<?php echo htmlspecialchars($b['Azienda']); ?>"
+                                            data-date-esg="<?php echo htmlspecialchars($b['Data']); ?>">
+                                            <?php echo htmlspecialchars($b['Azienda']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback">Seleziona bilancio.</div>
+                                <input type="hidden" name="dataBil" value="">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Voce Riferimento</label>
+                                <select name="voce" class="form-select" required>
+                                    <option value="">Seleziona...</option>
+                                    <?php foreach ($voci as $v): ?>
+                                        <option value="<?php echo htmlspecialchars($v['Nome']); ?>">
+                                            <?php echo htmlspecialchars($v['Nome']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback">Seleziona voce.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Indicatore ESG</label>
+                            <select name="indicatore" class="form-select" required>
+                                <option value="">Seleziona Indicatore...</option>
+                                <?php foreach ($indicatori as $i): ?>
+                                    <option value="<?php echo htmlspecialchars($i['Nome']); ?>">
+                                        <?php echo htmlspecialchars($i['Nome']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="invalid-feedback">Seleziona un indicatore.</div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Data Ril.</label>
+                                <input type="date" name="dataRilevazione" class="form-control" required>
+                                <div class="invalid-feedback">Data richiesta.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Valore</label>
+                                <input type="number" name="valoreNum" class="form-control" step="0.01" required>
+                                <div class="invalid-feedback">Valore richiesto.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Fonte</label>
+                                <input type="text" name="fonte" class="form-control" placeholder="Es. report interno"
+                                    required>
+                                <div class="invalid-feedback">Fonte richiesta.</div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">Collega ESG</button>
                     </form>
                 </div>
             </div>
@@ -195,10 +348,12 @@ function badgeClassFromStato(string $stato): string
                                 <?php else: ?>
                                     <?php foreach ($bilanci as $bilancio): ?>
                                         <tr>
-                                            <td>#<?php echo htmlspecialchars($bilancio['Data'] . '-' . $bilancio['Azienda']); ?></td>
+                                            <td>#<?php echo htmlspecialchars($bilancio['Data'] . '-' . $bilancio['Azienda']); ?>
+                                            </td>
                                             <td><?php echo htmlspecialchars($bilancio['Azienda']); ?></td>
                                             <td>
-                                                <span class="badge <?php echo badgeClassFromStato((string) $bilancio['Stato']); ?>">
+                                                <span
+                                                    class="badge <?php echo badgeClassFromStato((string) $bilancio['Stato']); ?>">
                                                     <?php echo htmlspecialchars($bilancio['Stato']); ?>
                                                 </span>
                                             </td>
@@ -221,7 +376,9 @@ function badgeClassFromStato(string $stato): string
     (function () {
         const requiredByAction = {
             registraAzienda: ['ragione_sociale', 'nome', 'settore', 'logo_file', 'piva', 'n_dipendenti'],
-            creaBilancio: ['azienda', 'data']
+            creaBilancio: ['azienda', 'data'],
+            popolaBilancio: ['azienda', 'voce', 'importo'],
+            creaCollegamentoESG: ['azienda', 'voce', 'indicatore', 'dataRilevazione', 'valoreNum', 'fonte']
         };
 
         function getActionName(form) {
@@ -283,5 +440,25 @@ function badgeClassFromStato(string $stato): string
                 }
             });
         });
+        const selectBilPopola = document.querySelector('form[data-action-form="popolaBilancio"] select[name="azienda"]');
+        if (selectBilPopola) {
+            selectBilPopola.addEventListener('change', function () {
+                const selectedOption = this.options[this.selectedIndex];
+                const date = selectedOption.getAttribute('data-date');
+                const hiddenData = this.form.querySelector('input[name="data"]');
+                if (hiddenData) hiddenData.value = date || '';
+            });
+        }
+
+        const selectBilEsg = document.querySelector('form[data-action-form="creaCollegamentoESG"] select[name="azienda"]');
+        if (selectBilEsg) {
+            selectBilEsg.addEventListener('change', function () {
+                const selectedOption = this.options[this.selectedIndex];
+                const date = selectedOption.getAttribute('data-date-esg');
+                const hiddenData = this.form.querySelector('input[name="dataBil"]');
+                if (hiddenData) hiddenData.value = date || '';
+            });
+        }
+
     })();
 </script>
