@@ -33,6 +33,11 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
                             Statistiche Pubbliche
                         </a>
                     </li>
+                    <li class="nav-item me-lg-4 mb-2 mb-lg-0">
+                        <a class="btn btn-outline-primary fw-bold" href="/index.php">
+                            Home
+                        </a>
+                    </li>
 
                     <?php if (isset($_SESSION['user'])): ?>
                         <li class="nav-item me-lg-3">
