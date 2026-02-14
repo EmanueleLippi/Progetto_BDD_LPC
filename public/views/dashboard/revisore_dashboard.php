@@ -26,6 +26,54 @@ $stmtBilanci = $conn->prepare("
 ");
 $stmtBilanci->execute([':revisore' => $revisore]);
 $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
+
+// recupero voci contabili disponibili sui bilanci assegnati al revisore
+$stmtVoci = $conn->prepare("
+    SELECT DISTINCT RB.AziendaBil AS Azienda, RB.DataBil AS DataBilancio, RB.Voce AS Voce
+    FROM Revisione R
+    JOIN RigaBilancio RB ON RB.AziendaBil = R.BilancioAz AND RB.DataBil = R.DataBil
+    WHERE R.Revisore = :revisore
+    ORDER BY RB.AziendaBil ASC, RB.DataBil DESC, RB.Voce ASC
+");
+$stmtVoci->execute([':revisore' => $revisore]);
+$vociBilancio = $stmtVoci->fetchAll(PDO::FETCH_ASSOC);
+
+// dataset per select dinamiche
+$aziendeAssegnate = [];
+$dateByAzienda = [];
+foreach ($bilanci as $bilancio) {
+    $azienda = (string) ($bilancio['Azienda'] ?? '');
+    $data = (string) ($bilancio['Data'] ?? '');
+    if ($azienda === '' || $data === '') {
+        continue;
+    }
+    $aziendeAssegnate[$azienda] = true;
+    if (!isset($dateByAzienda[$azienda])) {
+        $dateByAzienda[$azienda] = [];
+    }
+    if (!in_array($data, $dateByAzienda[$azienda], true)) {
+        $dateByAzienda[$azienda][] = $data;
+    }
+}
+
+$vociByAziendaData = [];
+foreach ($vociBilancio as $rigaVoce) {
+    $azienda = (string) ($rigaVoce['Azienda'] ?? '');
+    $data = (string) ($rigaVoce['DataBilancio'] ?? '');
+    $voce = (string) ($rigaVoce['Voce'] ?? '');
+    if ($azienda === '' || $data === '' || $voce === '') {
+        continue;
+    }
+    if (!isset($vociByAziendaData[$azienda])) {
+        $vociByAziendaData[$azienda] = [];
+    }
+    if (!isset($vociByAziendaData[$azienda][$data])) {
+        $vociByAziendaData[$azienda][$data] = [];
+    }
+    if (!in_array($voce, $vociByAziendaData[$azienda][$data], true)) {
+        $vociByAziendaData[$azienda][$data][] = $voce;
+    }
+}
 ?>
 
 <div class="container my-5">
@@ -111,18 +159,20 @@ $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Azienda (bilancioaz)</label>
-                                <select name="bilancioaz" class="form-select" required>
+                                <select name="bilancioaz" id="giudizioAzienda" class="form-select" required>
                                     <option value="">Seleziona...</option>
-                                    <?php foreach ($bilanci as $b): ?>
-                                        <option value="<?php echo htmlspecialchars($b['Azienda']); ?>">
-                                            <?php echo htmlspecialchars($b['Azienda']); ?>
+                                    <?php foreach (array_keys($aziendeAssegnate) as $azienda): ?>
+                                        <option value="<?php echo htmlspecialchars($azienda); ?>">
+                                            <?php echo htmlspecialchars($azienda); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Data Bilancio (databil)</label>
-                                <input type="date" name="databil" class="form-control" required>
+                                <select name="databil" id="giudizioData" class="form-select" required disabled>
+                                    <option value="">Seleziona prima un'azienda...</option>
+                                </select>
                             </div>
                         </div>
 
@@ -160,19 +210,28 @@ $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
                         <div class="row align-items-end">
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">Azienda (rigaazienda)</label>
-                                <input type="text" name="rigaazienda" class="form-control" placeholder="Es. Tech Spa"
-                                    required>
+                                <select name="rigaazienda" id="notaAzienda" class="form-select" required>
+                                    <option value="">Seleziona...</option>
+                                    <?php foreach (array_keys($aziendeAssegnate) as $azienda): ?>
+                                        <option value="<?php echo htmlspecialchars($azienda); ?>">
+                                            <?php echo htmlspecialchars($azienda); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
 
                             <div class="col-md-2 mb-3">
                                 <label class="form-label">Data Bil. (rigadata)</label>
-                                <input type="date" name="rigadata" class="form-control" required>
+                                <select name="rigadata" id="notaData" class="form-select" required disabled>
+                                    <option value="">Seleziona prima un'azienda...</option>
+                                </select>
                             </div>
 
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">Voce Contabile (voceriga)</label>
-                                <input type="text" name="voceriga" class="form-control" placeholder="Es. Emissioni CO2"
-                                    required>
+                                <select name="voceriga" id="notaVoce" class="form-select" required disabled>
+                                    <option value="">Seleziona prima azienda e data...</option>
+                                </select>
                             </div>
 
                             <div class="col-md-4 mb-3">
@@ -192,6 +251,80 @@ $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
+    const dateByAzienda = <?php echo json_encode($dateByAzienda, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const vociByAziendaData = <?php echo json_encode($vociByAziendaData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+
+    function popolaSelectDate(azienda, selectData) {
+        const dateDisponibili = dateByAzienda[azienda] || [];
+        selectData.innerHTML = '';
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+
+        if (!azienda) {
+            defaultOption.textContent = "Seleziona prima un'azienda...";
+            selectData.appendChild(defaultOption);
+            selectData.disabled = true;
+            return;
+        }
+
+        if (dateDisponibili.length === 0) {
+            defaultOption.textContent = 'Nessuna data disponibile';
+            selectData.appendChild(defaultOption);
+            selectData.disabled = true;
+            return;
+        }
+
+        defaultOption.textContent = 'Seleziona data bilancio...';
+        selectData.appendChild(defaultOption);
+
+        dateDisponibili.forEach((data) => {
+            const option = document.createElement('option');
+            option.value = data;
+            option.textContent = data;
+            selectData.appendChild(option);
+        });
+
+        selectData.disabled = false;
+    }
+
+    function popolaSelectVoci(azienda, dataBilancio, selectVoce) {
+        const vociDisponibili = (vociByAziendaData[azienda] && vociByAziendaData[azienda][dataBilancio])
+            ? vociByAziendaData[azienda][dataBilancio]
+            : [];
+
+        selectVoce.innerHTML = '';
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+
+        if (!azienda || !dataBilancio) {
+            defaultOption.textContent = 'Seleziona prima azienda e data...';
+            selectVoce.appendChild(defaultOption);
+            selectVoce.disabled = true;
+            return;
+        }
+
+        if (vociDisponibili.length === 0) {
+            defaultOption.textContent = 'Nessuna voce disponibile';
+            selectVoce.appendChild(defaultOption);
+            selectVoce.disabled = true;
+            return;
+        }
+
+        defaultOption.textContent = 'Seleziona voce contabile...';
+        selectVoce.appendChild(defaultOption);
+
+        vociDisponibili.forEach((voce) => {
+            const option = document.createElement('option');
+            option.value = voce;
+            option.textContent = voce;
+            selectVoce.appendChild(option);
+        });
+
+        selectVoce.disabled = false;
+    }
+
     //gestione del form Competenze per supportare entrambe le azioni del controller
     function gestisciCompetenza() {
         const tipo = document.getElementById('tipoCompetenza').value;
@@ -238,6 +371,33 @@ $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        const giudizioAzienda = document.getElementById('giudizioAzienda');
+        const giudizioData = document.getElementById('giudizioData');
+        const notaAzienda = document.getElementById('notaAzienda');
+        const notaData = document.getElementById('notaData');
+        const notaVoce = document.getElementById('notaVoce');
+
+        if (giudizioAzienda && giudizioData) {
+            giudizioAzienda.addEventListener('change', () => {
+                popolaSelectDate(giudizioAzienda.value, giudizioData);
+            });
+            popolaSelectDate(giudizioAzienda.value, giudizioData);
+        }
+
+        if (notaAzienda && notaData && notaVoce) {
+            notaAzienda.addEventListener('change', () => {
+                popolaSelectDate(notaAzienda.value, notaData);
+                popolaSelectVoci('', '', notaVoce);
+            });
+
+            notaData.addEventListener('change', () => {
+                popolaSelectVoci(notaAzienda.value, notaData.value, notaVoce);
+            });
+
+            popolaSelectDate(notaAzienda.value, notaData);
+            popolaSelectVoci(notaAzienda.value, notaData.value, notaVoce);
+        }
+
         toggleRilievi();
     });
 </script>

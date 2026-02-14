@@ -14,7 +14,7 @@ $conn = $db->getConnection();
 //recupero lista Revisori
 try {
     //estraggo solo i revisori attraverso il Join
-    $stmtRev = $conn->query("SELECT Username FROM Utente JOIN Revisore ON Utente.Cf = Revisore.Utente");
+    $stmtRev = $conn->query("SELECT Cf, Username FROM Utente JOIN Revisore ON Utente.Cf = Revisore.Utente");
     $revisori = $stmtRev->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     echo "Errore: " . $e->getMessage();
@@ -29,6 +29,15 @@ try {
 } catch (PDOException $e) {
     echo "Errore: " . $e->getMessage();
     $aziende = [];
+}
+
+// recupero date bilancio per azienda (usate per la select dinamica)
+try {
+    $stmtBilanci = $conn->query("SELECT Azienda, Data FROM Bilancio ORDER BY Data DESC");
+    $bilanci = $stmtBilanci->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo "Errore: " . $e->getMessage();
+    $bilanci = [];
 }
 ?>
 
@@ -178,7 +187,10 @@ try {
 
                             <div class="col-md-3 mb-3">
                                 <label class="form-label">Data Bilancio</label>
-                                <input type="date" name="dataBilancio" class="form-control" required>
+                                <select name="dataBilancio" id="dataBilancioSelect" class="form-select" required
+                                    disabled>
+                                    <option value="">Seleziona prima un'azienda...</option>
+                                </select>
                                 <div class="invalid-feedback">Seleziona la data bilancio.</div>
                             </div>
 
@@ -187,7 +199,7 @@ try {
                                 <select name="revisore" class="form-select" required>
                                     <option value="">Seleziona Revisore...</option>
                                     <?php foreach ($revisori as $rev): ?>
-                                        <option value="<?php echo htmlspecialchars($rev['Username']); ?>">
+                                        <option value="<?php echo htmlspecialchars($rev['Cf']); ?>">
                                             <?php echo htmlspecialchars($rev['Username']); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -207,6 +219,21 @@ try {
 </div>
 
 <script>
+    const bilanciByAzienda = <?php
+    $bilanciByAzienda = [];
+    foreach ($bilanci as $bilancio) {
+        $azienda = (string) ($bilancio['Azienda'] ?? '');
+        $data = (string) ($bilancio['Data'] ?? '');
+        if ($azienda !== '' && $data !== '') {
+            if (!isset($bilanciByAzienda[$azienda])) {
+                $bilanciByAzienda[$azienda] = [];
+            }
+            $bilanciByAzienda[$azienda][] = $data;
+        }
+    }
+    echo json_encode($bilanciByAzienda, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    ?>;
+
     //funzione per gestire la visualizzazione dei campi in base al tipo di indicatore
     function gestisciFormIndicatore() {
         const tipo = document.getElementById('tipoSelect').value;
@@ -244,6 +271,46 @@ try {
     }
 
     (function () {
+        function aggiornaDateBilancio() {
+            const aziendaSelect = document.querySelector('select[name="bilancioAz"]');
+            const dataSelect = document.getElementById('dataBilancioSelect');
+            if (!aziendaSelect || !dataSelect) return;
+
+            const aziendaSelezionata = aziendaSelect.value;
+            const dateDisponibili = bilanciByAzienda[aziendaSelezionata] || [];
+
+            dataSelect.innerHTML = '';
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+
+            if (!aziendaSelezionata) {
+                defaultOption.textContent = "Seleziona prima un'azienda...";
+                dataSelect.appendChild(defaultOption);
+                dataSelect.disabled = true;
+                return;
+            }
+
+            if (dateDisponibili.length === 0) {
+                defaultOption.textContent = 'Nessun bilancio disponibile';
+                dataSelect.appendChild(defaultOption);
+                dataSelect.disabled = true;
+                return;
+            }
+
+            defaultOption.textContent = 'Seleziona data bilancio...';
+            dataSelect.appendChild(defaultOption);
+
+            dateDisponibili.forEach((data) => {
+                const option = document.createElement('option');
+                option.value = data;
+                option.textContent = data;
+                dataSelect.appendChild(option);
+            });
+
+            dataSelect.disabled = false;
+        }
+
         const requiredByAction = {
             inserisci_voce: ['nome'],
             inserisci_esg: ['nome', 'rilevanza', 'img_file'],
@@ -322,6 +389,22 @@ try {
             });
         }
 
+        const aziendaBilancioSelect = document.querySelector('select[name="bilancioAz"]');
+        if (aziendaBilancioSelect) {
+            aziendaBilancioSelect.addEventListener('change', () => {
+                aggiornaDateBilancio();
+                const formAssegna = document.querySelector('form[data-action-form="assegna_revisore"]');
+                if (formAssegna) {
+                    const errorBox = formAssegna.querySelector('[data-form-error]');
+                    if (errorBox) {
+                        errorBox.textContent = '';
+                        errorBox.classList.add('d-none');
+                    }
+                }
+            });
+        }
+
+        aggiornaDateBilancio();
         gestisciFormIndicatore();
     })();
 </script>
