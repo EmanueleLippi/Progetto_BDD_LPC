@@ -5,7 +5,6 @@ CREATE PROCEDURE RegistraAdmin(
     IN p_CF VARCHAR(20),
     IN p_UserName VARCHAR(20),
     IN p_Password VARCHAR(20),
-    IN p_Email VARCHAR(30),
     IN p_DataNascita DATE,
     IN p_LuogoNascita VARCHAR(20)
 )
@@ -20,9 +19,6 @@ BEGIN
         INSERT INTO Utente (Cf, Username, PW, DataNascita, LuogoNascita)
         VALUES (p_CF, p_UserName, p_Password, p_DataNascita, p_LuogoNascita);
         
-        INSERT INTO Email (Utente, Indirizzo)
-        VALUES (p_CF, p_Email);
-        
         INSERT INTO Administrator (Utente)
         VALUES (p_CF);
     COMMIT;
@@ -33,7 +29,6 @@ CREATE PROCEDURE RegistraRevisore(
     IN p_CF VARCHAR(20),
     IN p_UserName VARCHAR(20),
     IN p_Password VARCHAR(20),
-    IN p_Email VARCHAR(30),
     IN p_DataNascita DATE,
     IN p_LuogoNascita VARCHAR(20),
     IN p_IndAff FLOAT
@@ -49,9 +44,6 @@ BEGIN
         INSERT INTO Utente (Cf, Username, PW, DataNascita, LuogoNascita)
         VALUES (p_CF, p_UserName, p_Password, p_DataNascita, p_LuogoNascita);
         
-        INSERT INTO Email (Utente, Indirizzo)
-        VALUES (p_CF, p_Email);
-        
         INSERT INTO Revisore (Utente, NRevisioni, IndiceAffidabilita)
         VALUES (p_CF, 0, p_IndAff);
     COMMIT;
@@ -62,7 +54,6 @@ CREATE PROCEDURE RegistraResponsabile(
     IN p_CF VARCHAR(20),
     IN p_UserName VARCHAR(20),
     IN p_Password VARCHAR(20),
-    IN p_Email VARCHAR(30),
     IN p_DataNascita DATE,
     IN p_LuogoNascita VARCHAR(20),
     IN p_Cv_Path VARCHAR(255)
@@ -77,9 +68,6 @@ BEGIN
     START TRANSACTION;
         INSERT INTO Utente (Cf, Username, PW, DataNascita, LuogoNascita)
         VALUES (p_CF, p_UserName, p_Password, p_DataNascita, p_LuogoNascita);
-        
-        INSERT INTO Email (Utente, Indirizzo)
-        VALUES (p_CF, p_Email);
         
         INSERT INTO Responsabile (Utente, Cv_Path)
         VALUES (p_CF, p_Cv_Path);
@@ -137,6 +125,23 @@ BEGIN
     LEFT JOIN Revisore R ON U.Cf = R.Utente
     LEFT JOIN Responsabile Resp ON U.Cf = Resp.Utente
     WHERE U.Cf = p_cf AND U.PW = p_PW;
+END $$
+
+CREATE PROCEDURE RegistraEmail(
+    IN p_CF VARCHAR(20),
+    IN p_Email VARCHAR(30)
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        INSERT INTO Email (Utente, Indirizzo)
+        VALUES (p_CF, p_Email);
+    COMMIT;
 END $$
 
 DELIMITER;

@@ -48,7 +48,11 @@ $error = $_GET['error'] ?? null;
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label fw-bold">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="email" class="form-control" id="email" name="email[]" required>
+                        <button type="button" class="btn btn-outline-primary" id="mailAdditor" aria-label="Aggiungi email">+</button>
+                    </div>
+                    <div id="additional_emails" class="mt-2"></div>
                 </div>
                 <div class="mb-3">
                     <label for="username" class="form-label fw-bold">Username</label>
@@ -145,6 +149,8 @@ $error = $_GET['error'] ?? null;
         const nuovaCompetenzaInput = document.getElementById('nuova_competenza');
         const livelloNuovaCompetenzaSelect = document.getElementById('livello_nuova_competenza');
         const aggiungiNuovaCompetenzaBtn = document.getElementById('aggiungi_nuova_competenza_btn');
+        const mailAdditorBtn = document.getElementById('mailAdditor');
+        const additionalEmailsContainer = document.getElementById('additional_emails');
         const form = competenzeSelect.closest('form');
         const selected = new Map();
 
@@ -244,7 +250,43 @@ $error = $_GET['error'] ?? null;
             livelloNuovaCompetenzaSelect.value = '0';
         });
 
+        mailAdditorBtn.addEventListener('click', () => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex align-items-center gap-2 mt-2';
+
+            const input = document.createElement('input');
+            input.type = 'email';
+            input.className = 'form-control';
+            input.name = 'email[]';
+            input.placeholder = 'Email aggiuntiva (opzionale)';
+            input.required = false;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-outline-danger';
+            removeBtn.textContent = 'Rimuovi';
+            removeBtn.addEventListener('click', () => {
+                wrapper.remove();
+            });
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(removeBtn);
+            additionalEmailsContainer.appendChild(wrapper);
+        });
+
         form.addEventListener('submit', (event) => {
+            const allEmails = form.querySelectorAll('input[name="email[]"]');
+            allEmails.forEach((input, index) => {
+                const isMain = index === 0;
+                const trimmedValue = input.value.trim();
+                if (!isMain && trimmedValue === '') {
+                    input.disabled = true;
+                    return;
+                }
+                input.disabled = false;
+                input.value = trimmedValue;
+            });
+
             const existing = form.querySelectorAll('input[name="competenze_selezionate[]"]');
             existing.forEach((node) => node.remove());
             const existingLevels = form.querySelectorAll('input[name="competenze_livelli[]"]');

@@ -12,7 +12,10 @@ $password = $_POST['password'];
 $ruolo = $_POST['ruolo'];
 $dataNascita = $_POST['dataNascita'];
 $luogoNascita = $_POST['LuogoNascita'];
-$email = $_POST['email'];
+$emails = $_POST['email'] ?? [];
+if (!is_array($emails)) {
+    $emails = [$emails];
+}
 $username = $_POST['username'];
 
 $database = Database::getInstance();
@@ -71,14 +74,36 @@ if ($ruolo === 'Responsabile') {
 switch ($ruolo) {
     case 'Admin':
         try {
-            $stmt = $conn->prepare("CALL RegistraAdmin(:cf, :username, :password, :email, :dataNascita, :luogoNascita)");
+            $stmt = $conn->prepare("CALL RegistraAdmin(:cf, :username, :password, :dataNascita, :luogoNascita)");
             $stmt->bindValue(":cf", $cf);
             $stmt->bindValue(":password", $password);
-            $stmt->bindValue(":email", $email);
             $stmt->bindValue(":dataNascita", $dataNascita);
             $stmt->bindValue(":luogoNascita", $luogoNascita);
             $stmt->bindValue(":username", $username);
             $stmt->execute();
+            $stmt->closeCursor();
+            foreach ($emails as $ind => $email) {
+                $email = trim((string) $email);
+                if ($email === '') {
+                    continue;
+                }
+                try {
+                    $stmt = $conn->prepare("CALL RegistraEmail(:cf, :email)");
+                    $stmt->bindValue(":cf", $cf);
+                    $stmt->bindValue(":email", $email);
+                    $stmt->execute();
+                    $stmt->closeCursor();
+                } catch (\PDOException $th) {
+                    $sqlState = $th->errorInfo[0] ?? null;
+                    $driverErrorCode = $th->errorInfo[1] ?? null;
+                    if ($sqlState === '23000' || $driverErrorCode === 1062) {
+                        $mongoDB->logEvent('register', $cf, 'N/A', 'Tentativo di inserimento mail duplicata');
+                        header("Location: /views/register.php?error=Mail già presente");
+                        exit;
+                    }
+                    throw $th;
+                }
+            }
         } catch (\PDOException $th) {
             echo ("[ERRORE] Query sql di registrazione fallita" . $th->getMessage() . "\n");
             $mongoDB->logEvent('register', $cf, 'N/A', 'Tentativo di registrazione fallito');
@@ -88,36 +113,79 @@ switch ($ruolo) {
         break;
     case 'Responsabile':
         try {
-            $stmt = $conn->prepare('CALL RegistraResponsabile(:cf, :username, :password, :email, :dataNascita, :luogoNascita, :cv_path)');
+            $stmt = $conn->prepare('CALL RegistraResponsabile(:cf, :username, :password, :dataNascita, :luogoNascita, :cv_path)');
             $stmt->bindValue(":cf", $cf);
             $stmt->bindValue(":username", $username);
             $stmt->bindValue(":password", $password);
-            $stmt->bindValue(":email", $email);
             $stmt->bindValue(":dataNascita", $dataNascita);
             $stmt->bindValue(":luogoNascita", $luogoNascita);
             $stmt->bindValue(":cv_path", $cv_path);
             $stmt->execute();
+            $stmt->closeCursor();
+            foreach ($emails as $ind => $email) {
+                $email = trim((string) $email);
+                if ($email === '') {
+                    continue;
+                }
+                try {
+                    $stmt = $conn->prepare("CALL RegistraEmail(:cf, :email)");
+                    $stmt->bindValue(":cf", $cf);
+                    $stmt->bindValue(":email", $email);
+                    $stmt->execute();
+                    $stmt->closeCursor();
+                } catch (\PDOException $th) {
+                    $sqlState = $th->errorInfo[0] ?? null;
+                    $driverErrorCode = $th->errorInfo[1] ?? null;
+                    if ($sqlState === '23000' || $driverErrorCode === 1062) {
+                        $mongoDB->logEvent('register', $cf, 'N/A', 'Tentativo di inserimento mail duplicata');
+                        header("Location: /views/register.php?error=Mail già presente");
+                        exit;
+                    }
+                    throw $th;
+                }
+            }
         } catch (\PDOException $th) {
             echo ("[ERRORE] Query sql di registrazione fallita" . $th->getMessage() . "\n");
             $mongoDB->logEvent('register', $cf, 'N/A', 'Tentativo di registrazione fallito');
-            header("Location: /views/register.php?error=Errore di registrazione");
+            header("Location: /views/register.php?error=Errore di registrazione Username o CF già presente");
             exit;
         }
         break;
     case 'Revisore':
         try {
             $indiceAffidabilita = 0;
-            $stmt = $conn->prepare('CALL RegistraRevisore(:cf, :username, :password, :email, :dataNascita, :luogoNascita, :indiceAffidabilita)');
+            $stmt = $conn->prepare('CALL RegistraRevisore(:cf, :username, :password, :dataNascita, :luogoNascita, :indiceAffidabilita)');
             $stmt->bindValue(":cf", $cf);
             $stmt->bindValue(":username", $username);
             $stmt->bindValue(":password", $password);
-            $stmt->bindValue(":email", $email);
             $stmt->bindValue(":dataNascita", $dataNascita);
             $stmt->bindValue(":luogoNascita", $luogoNascita);
             $stmt->bindValue(":indiceAffidabilita", $indiceAffidabilita);
             $stmt->execute();
             //dopo la prima call al db chiudo il cursore per evitare errori
             $stmt->closeCursor();
+            foreach ($emails as $ind => $email) {
+                $email = trim((string) $email);
+                if ($email === '') {
+                    continue;
+                }
+                try {
+                    $stmt = $conn->prepare("CALL RegistraEmail(:cf, :email)");
+                    $stmt->bindValue(":cf", $cf);
+                    $stmt->bindValue(":email", $email);
+                    $stmt->execute();
+                    $stmt->closeCursor();
+                } catch (\PDOException $th) {
+                    $sqlState = $th->errorInfo[0] ?? null;
+                    $driverErrorCode = $th->errorInfo[1] ?? null;
+                    if ($sqlState === '23000' || $driverErrorCode === 1062) {
+                        $mongoDB->logEvent('register', $cf, 'N/A', 'Tentativo di inserimento mail duplicata');
+                        header("Location: /views/register.php?error=Mail già presente");
+                        exit;
+                    }
+                    throw $th;
+                }
+            }
 
             $competenzeSelezionate = $_POST['competenze_selezionate'] ?? []; //estraggo l'array delle competenze selezionate dal revisore in registrazione
             $competenzeLivelli = $_POST['competenze_livelli'] ?? []; //estraggo l'array dei livelli delle competenze selezionate

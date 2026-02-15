@@ -208,4 +208,15 @@ BEGIN
     END IF;
 END $$
 
+CREATE TRIGGER Nrevisioni
+AFTER UPDATE ON Revisione
+FOR EACH ROW
+BEGIN
+    IF OLD.Esito IS NULL AND NEW.Esito IS NOT NULL THEN
+        UPDATE Revisore
+        SET NRevisioni = NRevisioni + 1
+        WHERE Utente = NEW.Revisore;
+    END IF;
+END $$
+
 DELIMITER;

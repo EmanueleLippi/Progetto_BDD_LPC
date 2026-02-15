@@ -14,26 +14,38 @@ SELECT
     A.RagioneSociale,
     A.Nome AS NomeAzienda,
     A.Settore,
-    SUM(CASE WHEN B.ApprovatoSenzaRilievi = 1 THEN 1 ELSE 0 END) AS NumApprovazioni,
+    SUM(
+        CASE
+            WHEN B.ApprovatoSenzaRilievi = 1 THEN 1
+            ELSE 0
+        END
+    ) AS NumApprovazioni,
     COUNT(*) AS NumTotali,
     (
-        SUM(CASE WHEN B.ApprovatoSenzaRilievi = 1 THEN 1 ELSE 0 END) * 100.0
-        / NULLIF(COUNT(*), 0)
+        SUM(
+            CASE
+                WHEN B.ApprovatoSenzaRilievi = 1 THEN 1
+                ELSE 0
+            END
+        ) * 100.0 / NULLIF(COUNT(*), 0)
     ) AS Percentuale_Affidabilita
 FROM Azienda A
     JOIN (
         SELECT
-            R.BilancioAz,
-            R.DataBil,
-            CASE
+            R.BilancioAz, R.DataBil, CASE
                 WHEN COUNT(*) > 0
-                    AND SUM(CASE WHEN R.Esito = 'Approvazione' THEN 1 ELSE 0 END) = COUNT(*)
-                THEN 1
+                AND COUNT(*) = COUNT(R.Esito)
+                AND SUM(
+                    CASE
+                        WHEN R.Esito = 'Approvazione' THEN 1
+                        ELSE 0
+                    END
+                ) = COUNT(*) THEN 1
                 ELSE 0
             END AS ApprovatoSenzaRilievi
         FROM Revisione R
-        WHERE R.Esito IS NOT NULL
-        GROUP BY R.BilancioAz, R.DataBil
+        GROUP BY
+            R.BilancioAz, R.DataBil
     ) AS B ON A.RagioneSociale = B.BilancioAz
 GROUP BY
     A.RagioneSociale,
@@ -45,23 +57,30 @@ HAVING
         SELECT MAX(Percentuale)
         FROM (
                 SELECT (
-                        SUM(CASE WHEN B2.ApprovatoSenzaRilievi = 1 THEN 1 ELSE 0 END) * 100.0
-                        / NULLIF(COUNT(*), 0)
+                        SUM(
+                            CASE
+                                WHEN B2.ApprovatoSenzaRilievi = 1 THEN 1
+                                ELSE 0
+                            END
+                        ) * 100.0 / NULLIF(COUNT(*), 0)
                     ) AS Percentuale
                 FROM Azienda A2
                     JOIN (
                         SELECT
-                            R2.BilancioAz,
-                            R2.DataBil,
-                            CASE
+                            R2.BilancioAz, R2.DataBil, CASE
                                 WHEN COUNT(*) > 0
-                                    AND SUM(CASE WHEN R2.Esito = 'Approvazione' THEN 1 ELSE 0 END) = COUNT(*)
-                                THEN 1
+                                AND COUNT(*) = COUNT(R2.Esito)
+                                AND SUM(
+                                    CASE
+                                        WHEN R2.Esito = 'Approvazione' THEN 1
+                                        ELSE 0
+                                    END
+                                ) = COUNT(*) THEN 1
                                 ELSE 0
                             END AS ApprovatoSenzaRilievi
                         FROM Revisione R2
-                        WHERE R2.Esito IS NOT NULL
-                        GROUP BY R2.BilancioAz, R2.DataBil
+                        GROUP BY
+                            R2.BilancioAz, R2.DataBil
                     ) AS B2 ON A2.RagioneSociale = B2.BilancioAz
                 GROUP BY
                     A2.RagioneSociale
@@ -86,4 +105,3 @@ GROUP BY
     A.Nome,
     A.Settore,
     B.Data
-ORDER BY Numero_Indicatori_ESG DESC;
