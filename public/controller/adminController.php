@@ -17,7 +17,6 @@ $mongoDB = new MongoDB();
 //controllo se l'utente ha il ruolo di per accedere a questi metodi
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     //se non ha il ruolo di admin lo mando alla pagina di login
-    //TODO: Valutare la creazione di una pagina di errore oppure di un redirect a index.php
     header("Location: /views/login.php?error=Non hai il permesso di accedere a questa pagina");
     //log del tentativo di accesso non autorizzato
     $mongoDB->logEvent('Tentativo di accesso non autorizzato', $_SESSION['user'] ?? 'Sconosciuto', $_SESSION['role'] ?? 'Sconosciuto', 'Tentativo di accesso non autorizzato alla pagina admin');
@@ -55,6 +54,7 @@ function uploadIndicatoreImmagine(MongoDB $mongoDB): string
 
     //prelevo il nome del file caricato e la sua estensione
     $originalName = $_FILES['img_file']['name'] ?? '';
+    // strtolower converte l'estensione in minuscolo per evitare problemi di case sensitivity, pathinfo estrae l'estensione del file
     $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     //Controllo se l'estensione del file è tra quelle accettate

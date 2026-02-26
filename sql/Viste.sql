@@ -14,13 +14,16 @@ SELECT
     A.RagioneSociale,
     A.Nome AS NomeAzienda,
     A.Settore,
+    -- conta per ogni azienda quanti bilanci hanno ApprovatoSenzaRilievi = 1
     SUM(
         CASE
             WHEN B.ApprovatoSenzaRilievi = 1 THEN 1
             ELSE 0
         END
     ) AS NumApprovazioni,
+    -- bilanci totali per ogni azienda
     COUNT(*) AS NumTotali,
+    -- percentuale affidabilità
     (
         SUM(
             CASE
@@ -30,6 +33,7 @@ SELECT
         ) * 100.0 / NULLIF(COUNT(*), 0)
     ) AS Percentuale_Affidabilita
 FROM Azienda A
+    -- sottoquery che vale 1 se tutti i rev assegnati hanno espresso un esito positivo, 0 altrimenti
     JOIN (
         SELECT
             R.BilancioAz, R.DataBil, CASE
@@ -44,19 +48,21 @@ FROM Azienda A
                 ELSE 0
             END AS ApprovatoSenzaRilievi
         FROM Revisione R
-        GROUP BY
-            R.BilancioAz, R.DataBil
+        GROUP BY R.BilancioAz, R.DataBil
     ) AS B ON A.RagioneSociale = B.BilancioAz
 GROUP BY
     A.RagioneSociale,
     A.Nome,
     A.Settore
+-- filtro post aggregazione
 HAVING
     Percentuale_Affidabilita = (
         -- Subquery per trovare la percentuale massima globale
-        SELECT MAX(Percentuale)
+        SELECT MAX(Percentuale)   
+        -- TabellaMassimi contiene una riga per azienda e la sua %
         FROM (
                 SELECT (
+                        -- conta quanti bilanci di quell'azienda sono approvati senza rilievi
                         SUM(
                             CASE
                                 WHEN B2.ApprovatoSenzaRilievi = 1 THEN 1
@@ -65,22 +71,23 @@ HAVING
                         ) * 100.0 / NULLIF(COUNT(*), 0)
                     ) AS Percentuale
                 FROM Azienda A2
+                    -- collega ogni azienda ai suoi bilanci
                     JOIN (
                         SELECT
                             R2.BilancioAz, R2.DataBil, CASE
-                                WHEN COUNT(*) > 0
-                                AND COUNT(*) = COUNT(R2.Esito)
+                                WHEN COUNT(*) > 0  -- esistono revisioni
+                                AND COUNT(*) = COUNT(R2.Esito)  -- tutti hanno espresso un esito
                                 AND SUM(
                                     CASE
                                         WHEN R2.Esito = 'Approvazione' THEN 1
                                         ELSE 0
                                     END
-                                ) = COUNT(*) THEN 1
+                                ) = COUNT(*) THEN 1 -- tutti hanno approvato
                                 ELSE 0
                             END AS ApprovatoSenzaRilievi
                         FROM Revisione R2
-                        GROUP BY
-                            R2.BilancioAz, R2.DataBil
+                        -- raggruppa per bilancio
+                        GROUP BY R2.BilancioAz, R2.DataBil
                     ) AS B2 ON A2.RagioneSociale = B2.BilancioAz
                 GROUP BY
                     A2.RagioneSociale
@@ -88,6 +95,7 @@ HAVING
     );
 
 -- Vista 4: per la classifica dei bilanci aziendali, ordinati in base al numero totale di indicatori ESG connessi alle singole voci contabili
+-- per creare la classifica, nel file statistiche.php viene usato un order by Numero_Indicatori DESC
 CREATE OR REPLACE VIEW Vista_ClassificaESG AS
 SELECT
     A.Nome AS NomeAzienda,
@@ -95,8 +103,7 @@ SELECT
     B.Data AS DataBilancio,
     COUNT(C.Indicatore) AS Numero_Indicatori_ESG
 FROM
-    Bilancio B
-    JOIN Azienda A ON B.Azienda = A.RagioneSociale
+    Bilancio B JOIN Azienda A ON B.Azienda = A.RagioneSociale
     -- Uniamo il bilancio ai suoi collegamenti ESG
     LEFT JOIN Collegamento C ON B.Azienda = C.Bilancio
     AND B.Data = C.DataBil

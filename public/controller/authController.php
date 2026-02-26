@@ -29,6 +29,7 @@ try {
     exit;
 }
 //ottengo il risultato della query
+// prende la prima riga del risultato della query eseguita.
 $result = $stmt->fetch();
 //controllo che il risultato esista --> se non esiste login fallito
 if ($result) {

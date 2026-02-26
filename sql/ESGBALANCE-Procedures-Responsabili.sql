@@ -9,6 +9,9 @@ CREATE PROCEDURE creaBilancio(
 BEGIN
     DECLARE is_authorized INT DEFAULT 0;
 
+    -- se avviene un errore qualsiasi fai rollback -> annulla tutta la transazione
+    -- resignal -> rilancia l'errore al chiamante
+    -- dopo aver eseguito il blocco esce dal begin ... end
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -22,6 +25,7 @@ BEGIN
     WHERE RagioneSociale = p_Azienda AND Responsabile = p_Responsabile;
 
     IF is_authorized = 0 THEN
+        -- lancia eccezione personalizzata se non autorizzato
         SIGNAL SQLSTATE '45000' 
         SET MESSAGE_TEXT = 'ERRORE: Utente non autorizzato per questa azienda';
     ELSE

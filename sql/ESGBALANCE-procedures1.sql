@@ -93,6 +93,7 @@ BEGIN
         RESIGNAL;
     END;
 
+    -- controlla se l'utente è un responsabile
     SELECT COUNT(*) INTO is_resp
     FROM Responsabile
     WHERE Utente = p_ResponsabileCF;
@@ -114,6 +115,7 @@ CREATE PROCEDURE Autenticazione(
 )
 BEGIN
     SELECT U.*,
+        -- colonna ruolo calcolata in base alla presenza di utente in una tabella
         CASE 
             WHEN A.Utente IS NOT NULL THEN 'Admin'
             WHEN R.Utente IS NOT NULL THEN 'Revisore'
@@ -124,6 +126,7 @@ BEGIN
     LEFT JOIN Administrator A ON U.Cf = A.Utente
     LEFT JOIN Revisore R ON U.Cf = R.Utente
     LEFT JOIN Responsabile Resp ON U.Cf = Resp.Utente
+    -- prende utente con le credenziali inserite
     WHERE U.Cf = p_cf AND U.PW = p_PW;
 END $$
 

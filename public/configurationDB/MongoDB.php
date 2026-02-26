@@ -1,6 +1,6 @@
 <?php
 namespace App\configurationDB;
-//importazione delle classi necessarie
+//importazione delle classi globali necessarie
 use MongoDB\Client;
 use MongoDB\BSON\UTCDateTime;
 
@@ -16,6 +16,7 @@ class MongoDB
             //connetto al server local
             $client = new Client("mongodb://127.0.0.1:27017");
             //seleziono il db e la collezione
+            //LOG_ESG è il nome del database, log è la collezione
             $this->collection = $client->LOG_ESG->log;
         } catch (\Exception $e) {
             die("Errore di connessione al database MongoDB: " . $e->getMessage());

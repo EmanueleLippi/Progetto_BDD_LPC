@@ -48,27 +48,19 @@ DECLARE EXIT HANDLER FOR SQLEXCEPTION
 -- Controllo: Il revisore esiste? (Auto-verifica dell'identità)
 SELECT COUNT(*) INTO is_revisore
 FROM Revisore
-WHERE
-    Utente = p_Revisore;
-
+WHERE Utente = p_Revisore;
 IF is_revisore = 0 THEN SIGNAL SQLSTATE '45000'
-SET
-    MESSAGE_TEXT = 'ERRORE: Revisore non trovato.';
-
+SET MESSAGE_TEXT = 'ERRORE: Revisore non trovato.';
 ELSE START TRANSACTION;
 
-INSERT INTO
-    Appartiene (Competenza, Revisore, Livello)
+INSERT INTO Appartiene (Competenza, Revisore, Livello)
 VALUES (
         p_Competenza,
         p_Revisore,
         p_Livello
     );
-
 COMMIT;
-
 END IF;
-
 END $$
 
 -- 3. Inserimento delle note su singola voce
@@ -175,6 +167,7 @@ END IF;
 END $$
 
 -- Trigger invariato (non richiede controlli utente diretti, scatta sugli eventi DB)
+-- aggiorna automaticamente lo stato del bilancio quando tutti i revisori hanno dato il giudizio.
 CREATE TRIGGER BilancioValutato
 AFTER UPDATE ON Revisione
 FOR EACH ROW

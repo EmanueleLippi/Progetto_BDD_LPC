@@ -45,6 +45,6 @@ $error = $_GET['error'] ?? null;
 </div>
 
 <?php
-// Includiamo il footer
+// Includiamo il footer in fondo alla pagina
 require_once __DIR__ . '/footer.php';
 ?>

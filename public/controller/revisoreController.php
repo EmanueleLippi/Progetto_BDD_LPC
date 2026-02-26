@@ -21,6 +21,7 @@ $conn = $db->getConnection();
 
 $azione = $_POST["azione"] ?? "";
 
+// switch per gestire tutte le azioni che un revisore può fare
 switch ($azione) {
     case "inserisciNote":
         $revisore = $_SESSION["cf"];

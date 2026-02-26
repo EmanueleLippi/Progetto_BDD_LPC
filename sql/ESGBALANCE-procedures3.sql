@@ -32,7 +32,6 @@ BEGIN
 END $$
 
 -- 2. Assegnare un revisore ad un bilancio aziendale
--- NOTA: Ho aggiunto p_AdminRichiedente per poter verificare i permessi!
 CREATE PROCEDURE AssegnaRevisore(
     IN p_Revisore VARCHAR(20), 
     IN p_DataBil DATE, 
@@ -66,7 +65,7 @@ BEGIN
     END IF;
 END $$
 
--- 3. Trigger per lo stato "In Revisione" (Invariato, va benissimo così)
+-- 3. Trigger per lo stato "In Revisione" 
 CREATE TRIGGER AggiornaStatoBilancio
 AFTER INSERT ON Revisione
 FOR EACH ROW

@@ -7,6 +7,7 @@ use App\configurationDB\MongoDB;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+// inizializziamo variabili PHP leggendo i campi inviati dal form via POST
 $cf = $_POST['cf'];
 $password = $_POST['password'];
 $ruolo = $_POST['ruolo'];
@@ -18,6 +19,7 @@ if (!is_array($emails)) {
 }
 $username = $_POST['username'];
 
+// inizializzazione connessioni database
 $database = Database::getInstance();
 $mongoDB = new MongoDB();
 $conn = $database->getConnection();
@@ -71,6 +73,7 @@ if ($ruolo === 'Responsabile') {
     $cv_path = '/uploads/cv/' . $fileName; //salvo nella variabile il percorso del file
 }
 
+// in base al ruolo dell'utente richiamo la procedura di registrazione opportuna
 switch ($ruolo) {
     case 'Admin':
         try {

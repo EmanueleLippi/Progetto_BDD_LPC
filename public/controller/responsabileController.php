@@ -84,6 +84,7 @@ function uploadLogoAzienda(MongoDB $mongoDB): ?string
     return '/uploads/aziende/' . $fileName; //ritorno il path del file da salvare sul database
 }
 
+// switch con tutte le azioni che un responsabile può fare
 switch ($azione) {
     case 'registraAzienda':
         $ragione_sociale = trim((string) ($_POST['ragione_sociale'] ?? ''));
