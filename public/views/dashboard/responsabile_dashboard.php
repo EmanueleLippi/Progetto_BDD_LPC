@@ -1,6 +1,6 @@
 <?php
 use App\configurationDB\Database;
-
+// carica autoloader di composer
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Responsabile') {
@@ -19,11 +19,12 @@ try {
     $stmtAziende = $conn->prepare("SELECT RagioneSociale, PartitaIva FROM Azienda WHERE Responsabile = :responsabile ORDER BY RagioneSociale");
     $stmtAziende->bindValue(':responsabile', $_SESSION['cf']);
     $stmtAziende->execute();
+    // fetchAll con FETCH_ASSOC per ottenere un array associativo più leggibile
     $aziende = $stmtAziende->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     echo "Errore caricamento aziende: " . htmlspecialchars($e->getMessage());
 }
-
+// Query più  per ottenere i bilanci con il conteggio delle voci compilate e degli indicatori ESG associati
 try {
     $sqlBilanci = "
         SELECT
@@ -62,6 +63,7 @@ try {
     echo "Errore caricamento indicatori: " . htmlspecialchars($e->getMessage());
 }
 
+//  trasforma lo stato del bilancio in classi Bootstrap per il badge.
 function badgeClassFromStato(string $stato): string
 {
     return match ($stato) {
@@ -374,6 +376,7 @@ function badgeClassFromStato(string $stato): string
 
 <script>
     (function () {
+        // definisce i campi obbligatori per ogni azione in modo centralizzato
         const requiredByAction = {
             registraAzienda: ['ragione_sociale', 'nome', 'settore', 'logo_file', 'piva', 'n_dipendenti'],
             creaBilancio: ['azienda', 'data'],
@@ -381,6 +384,7 @@ function badgeClassFromStato(string $stato): string
             creaCollegamentoESG: ['azienda', 'voce', 'indicatore', 'dataRilevazione', 'valoreNum', 'fonte']
         };
 
+        //  leggono l’azione del form e recuperano un campo per nome
         function getActionName(form) {
             const hidden = form.querySelector('input[name="azione"]');
             return hidden ? hidden.value : '';
@@ -389,13 +393,14 @@ function badgeClassFromStato(string $stato): string
         function getField(form, name) {
             return form.querySelector(`[name="${name}"]`);
         }
-
+        // aggiunge o rimuove classi bootstarp
         function setFieldValidity(field, isValid) {
             if (!field) return;
             field.classList.toggle('is-invalid', !isValid);
             field.classList.toggle('is-valid', isValid && field.value.trim() !== '');
         }
-
+        
+        // prende l'azione corrente, controlla i campi obbligatori e valida
         function validateForm(form) {
             const action = getActionName(form);
             const requiredFields = requiredByAction[action] || [];

@@ -1,5 +1,6 @@
 <?php
 use App\configurationDB\Database;
+// carica autoloader di composer
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
@@ -15,6 +16,7 @@ $conn = $db->getConnection();
 try {
     //estraggo solo i revisori attraverso il Join
     $stmtRev = $conn->query("SELECT Cf, Username FROM Utente JOIN Revisore ON Utente.Cf = Revisore.Utente");
+    //fetchAll con FETCH_ASSOC per ottenere un array associativo più leggibile
     $revisori = $stmtRev->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     echo "Errore: " . $e->getMessage();
@@ -219,6 +221,7 @@ try {
 </div>
 
 <script>
+    //  prende i bilanci letti dal database e li prepara per JavaScript
     const bilanciByAzienda = <?php
     $bilanciByAzienda = [];
     foreach ($bilanci as $bilancio) {
